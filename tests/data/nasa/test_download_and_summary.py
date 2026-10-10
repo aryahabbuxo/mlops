@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 from nasa_fixtures import make_site, make_text
-from solarwind.config import Settings
+from solarwind.config import Settings, load_sites
 from solarwind.data.nasa import download, summary
 
 
@@ -94,3 +94,13 @@ def test_build_summary_accepts_distinct_cells(tmp_path):
     write_site_file(settings, second, value_shift=1.0)
     table = summary.build_summary([first, second], settings)
     assert list(table["site_name"]) == ["a", "b"]
+
+
+def test_real_site_files_are_distinct_cells_when_present():
+    settings = Settings()
+    sites = load_sites(settings.sites_csv)
+    if not all((settings.nasa_raw_dir / site.filename).exists() for site in sites):
+        pytest.skip("raw NASA files not pulled")
+    table = summary.build_summary(sites, settings)
+    assert len(table) == len(sites)
+    assert set(table["rows"]) == {settings.nasa_expected_rows}

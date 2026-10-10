@@ -40,13 +40,13 @@ stages:
     deps:
     - path: config/sites.csv
       hash: md5
-      md5: 63dfd60c00086ebe48518024502b7423
-      size: 670
+      md5: a18e739ff87bc572c71b91656fd7d487
+      size: 723
     - path: data/raw/nasa
       hash: md5
-      md5: 522d61b3b96d5deba7da508a22cdab1d.dir
-      size: 333687
-      nfiles: 4
+      md5: c845a94d906c158d68319d2a18e4451c.dir
+      size: 667248
+      nfiles: 8
     - path: src/solarwind/config
       hash: md5
       md5: 0a3c5bcceeeba8bb4bab4f75e56bb0b2.dir
@@ -64,5 +64,5 @@ stages:
     outs:
     - path: data/processed/nasa_summary.csv
       hash: md5
-      md5: 3e15937a9430d7dc4b440609e60ebc9e
-      size: 490
+      md5: 6b2953188e1bb3eeb3866715edc026d3
+      size: 817
