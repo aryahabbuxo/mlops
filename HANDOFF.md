@@ -135,8 +135,7 @@ Mitigation:
 |---|---|---|
 | **Target** | CEA Daily Renewable Generation Report (state-wise solar and wind) | Primary. Downloaded, parsed and under DVC (section 5) |
 | **Features** | NASA POWER daily weather | Primary. 8 sites downloaded, validated and under DVC (section 4.3) |
-| **Fallback** | Grid-India hourly all-India demand/solar/wind (Mendeley Data, DOI 10.17632/y58jknpgs8) | Backup only, not downloaded |
-| **Cross-validation** | Grid-India daily PSP reports (regional totals) | Used for date alignment on five dates (section 5.4) |
+| **Target history** | India Data Portal daily renewable generation (CEA origin), 2019-10-30 to 2025-04-27 | Same quantity as the CEA Generation scope (section 4.4); ingestion in progress |
 | **Needed, not sourced** | Karnataka monthly installed capacity (solar, wind); state tariffs | Open |
 
 ### 4.2 NASA POWER
@@ -172,10 +171,8 @@ All 28 site pairs differ on every parameter column, so the eight sites are eight
 
 Earlier two-site test: a Pavagada-area point at (14.2470, 77.4170) was identical to Pavagada in all four columns (same cell, dropped); (14.25, 77.28) shared the irradiance but not temperature or wind (not kept). The first two NASA files in the repo had swapped names (the "solar" file held the Chitradurga point and the "wind" file the Pavagada point); they were replaced by correctly named files.
 
-### 4.4 Grid-India
-- Daily PSP reports are at **`grid-india.in/en/reports/daily-psp-report`** (PDF and `.xls` per day). The old `report.grid-india.in` address does not resolve. Files are named `DD.MM.YY_NLDC_PSP_<id>.xls`; the filename date is the data day, and each file states `Report for previous day` and `Date of Reporting` (data day + 1).
-- Regional solar/wind/hydro in MU; the state section has no solar or wind. Wind in ER/NER shown as "-" not 0. Embedded solar likely undercounted. The `.xls` layout shifts by one row between reports: read it by label, not position.
-- Mendeley hourly dataset: v1 Sept 2021 to Dec 2023; v2 titled to June 2025 (end date and licence **[UNVERIFIED]**). National only.
+### 4.4 India Data Portal (IDP) daily renewable generation
+- "Daily Renewable Energy Generation" on the India Data Portal, origin CEA (gen-re.cea.gov.in). State-level, daily, MU. Columns: `id,date,state_name,state_code,region,wind_energy,solar_energy,other_renewable_energy,total_renewable_energy`. Covers 2019-10-30 to 2025-04-27. Raw files under `data/raw/idp/` (DVC): the CSV and its codebook.
 
 ---
 
@@ -204,30 +201,13 @@ Target = **Generation sheet Karnataka row** (`wind_mu`, `solar_mu`). Secondary c
 - Coverage: 2024-06-30 to 2026-10-08 = 831 days. 776 files downloaded, 55 returned 404 (plain 404, no retryable errors). The portal does not list 54 of those dates, so they are real portal gaps. The 55th, **2026-02-19**, is listed and its PDF downloads, but the Excel URL returns 404 (checked twice).
 - Portal gaps cluster in May to Aug 2025: 2025-05-23 to 06-08, 06-30, 07-17 to 07-20, 07-22, 07-24, 07-29 to 08-21, 08-27, 08-28, 09-02, 09-30, 10-22, 10-27.
 - Processed table `data/processed/karnataka_daily.csv`: **775 rows, 56 missing days**, with columns `date`, `source_file`, `relabelled`, `wind_mu`, `solar_mu`, `wind_state_control_mu`, `solar_state_control_mu`. The 56 missing days are the 55 portal 404s minus the two dates now filled (2025-05-24 and 2025-05-25), plus 2025-06-24, 2025-06-25 (their filenames carry other dates) and 2025-10-14 (rejected).
-- Relabelled files (in the table, `relabelled = True`): `2025-06-24.xlsx` and `2025-06-25.xlsx` are late-filed May reports (internal B5 dates 24-May-25 and 25-May-25; those dates are 404 on the portal). They are accepted only through the config allow-list `cea_relabelled_files` in `Settings`; every other filename/B5 mismatch still fails, and the build fails if a relabelled date collides with a regularly named file. Evidence: Grid-India PSP data days 24 and 25 May 2025 match their B5 dates within 1% and the neighbouring files are clearly worse (table below); the NASA irradiance falls from 24 to 25 May as the file's solar does; in-May cumulatives fit (23 May implied wind 51.82 and solar 41.92). The pre-set month-to-date bracket after 25 May was not computable (the next file, 2025-06-09, restarts the month at 1 June).
+- Relabelled files (in the table, `relabelled = True`): `2025-06-24.xlsx` and `2025-06-25.xlsx` are late-filed May reports (internal B5 dates 24-May-25 and 25-May-25; those dates are 404 on the portal). They are accepted only through the config allow-list `cea_relabelled_files` in `Settings`; every other filename/B5 mismatch still fails, and the build fails if a relabelled date collides with a regularly named file. Evidence: the NASA irradiance (see below) falls from 24 to 25 May as the file's solar does; in-May cumulatives fit (23 May implied wind 51.82 and solar 41.92). The pre-set month-to-date bracket after 25 May was not computable (the next file, 2025-06-09, restarts the month at 1 June).
 - Rejected files (kept out of the table, logged in `data/processed/parse_failures.txt`):
   - `2025-10-14.xlsx`: different format (single sheet `Sheet1`, long table with State, State Code, Date, Wind, Solar, ...; no Generation sheet). Excluded and documented.
 - Flags (logged in `data/processed/flags.txt`, not fixed): 2024-12-19 wind Generation 6.68 < State-Wise 6.77 (caused by negative ISGS values, not a parse error). 2026-02-17 and 02-18 solar: State-Wise 0.00 and Generation about 22 vs typical about 55; treat as suspect and add a `suspect` column in the processed layer. 2025-05-25 wind: Generation 50.87 < State-Wise 50.92 (the relabelled day; same cause, negative ISGS wind rows summing to -0.05). `flags.txt` therefore has 4 lines.
-- **B5 is the generation date** (no shift). Confirmed on five Grid-India PSP dates. All-India wind and solar totals (MU), PSP data day vs the CEA `Generation` All India row of the file with the same date:
+- B5 confirmed as generation date during earlier work using Grid-India PSP; that source has since been removed. The seam with IDP is at 2024-06-30 and does not depend on it. Month-to-date step check: passed on 738 of 760 day pairs; the other 22 are probably restated cumulatives (not investigated).
 
-| PSP file | Reporting date | Data day | PSP wind / solar | CEA same-day wind / solar | Diff wind / solar |
-|---|---|---|---|---|---|
-| 30.09.26 | 01-Oct-2026 | Wed 2026-09-30 | 121.06 / 705.46 | 121.10 / 704.89 | +0.04 / -0.57 |
-| 02.10.26 | 03-Oct-2026 | Fri 2026-10-02 | 148.74 / 714.81 | 149.44 / 714.94 | +0.70 / +0.13 |
-| 04.10.26 | 05-Oct-2026 | Sun 2026-10-04 | 191.81 / 691.25 | 192.27 / 690.92 | +0.46 / -0.33 |
-| 05.10.26 | 06-Oct-2026 | Mon 2026-10-05 | 178.54 / 713.47 | 178.98 / 712.80 | +0.44 / -0.67 |
-| 06.10.26 | 07-Oct-2026 | Tue 2026-10-06 | 129.47 / 701.59 | 129.46 / 702.88 | -0.01 / +1.29 |
-
-  Each time, the same-date CEA file is the closest; neighbouring days differ by up to 38%. **Caveat: this is not independent validation.** The match is tighter than expected if CEA includes plants PSP undercounts, so CEA and PSP may share an upstream source. It confirms date alignment, not the generation values. Month-to-date step check: passed on 738 of 760 day pairs; the other 22 are probably restated cumulatives (not investigated).
-
-**May 2025 check for the relabelled files** (PSP files 24.05.25, 25.05.25 and 26.05.25 downloaded into `data/raw/gridindia/`; the filename date is the data day in 2025 as in 2026). All-India MU, PSP vs the CEA files that exist (22 May file, and the two relabelled files):
-
-| PSP data day | PSP wind / solar | vs CEA 24 May file (`2025-06-24.xlsx`) | vs CEA 25 May file (`2025-06-25.xlsx`) | vs CEA 22 May file |
-|---|---|---|---|---|
-| 2025-05-24 | 389.58 / 448.10 | 389.85 / 447.34 (+0.1% / -0.2%) | 369.03 / 348.36 (-5.3% / -22.3%) | 290.08 / 473.63 (-25.5% / +5.7%) |
-| 2025-05-25 | 368.73 / 350.32 | 389.85 / 447.34 (+5.7% / +27.7%) | 369.03 / 348.36 (+0.1% / -0.6%) | 290.08 / 473.63 (-21.3% / +35.2%) |
-
-The neighbouring PSP day 26 May (439.93 / 395.36) differs from the 25 May file by -16.1% wind and -11.9% solar. NASA irradiance (mean of the 4 solar sites, kWh/m2/day) vs `solar_mu`: 22 May 5.296 vs 39.95; 23 May 4.910 vs 41.92 (implied); 24 May 4.079 vs 36.00; 25 May 3.472 vs 29.12; 26 and 27 May 2.767 and 3.722 (no CEA value).
+NASA irradiance (mean of the 4 solar sites, kWh/m2/day) vs `solar_mu`: 22 May 5.296 vs 39.95; 23 May 4.910 vs 41.92 (implied); 24 May 4.079 vs 36.00; 25 May 3.472 vs 29.12; 26 and 27 May 2.767 and 3.722 (no CEA value).
 
 ### 5.5 Karnataka installed capacity: probes (no source chosen)
 Downloaded on 10 Oct 2026 into `data/scratch/` (git-ignored, not under DVC) and read: two CEA "Installed Capacity" PDFs (2024-06 and 2026-08) and four MNRE state-wise PDFs (as on 30.06.2024, 30.09.2024, 30.11.2024 and 30.09.2026). Nothing else was downloaded; no source or solar definition has been chosen.
@@ -281,7 +261,6 @@ Installable package `solarwind` (src layout, `pyproject.toml`, `pip install -e .
 | `src/solarwind/config/` | pydantic `Settings` (paths, URLs, date windows; `SOLARWIND_*` overrides) and the validated `Site` model with `load_sites()` |
 | `src/solarwind/data/cea/` | `download.py`, `parse.py` (asserts: Karnataka label present, exactly one Karnataka row, `B5` date equals the filename date and matches across sheets), `build_daily.py` |
 | `src/solarwind/data/nasa/` | `download.py`, `loader.py` (-999 becomes float NaN), `validate.py`, `summary.py` |
-| `src/solarwind/data/gridindia/psp.py` | label-based PSP reader and the five-date comparison (`python -m solarwind.data.gridindia.psp`) |
 | `src/solarwind/data/tables.py`, `join.py`, `quality.py` | readers for the processed tables, the weighted NASA join, and outlier (Tukey, multiplier in `Settings`) and seasonality helpers |
 | `src/solarwind/features/` | `calendar.py`, `weather.py`, `lags.py`, `split.py`, `schema.py` (the gate), `build.py` (the `featurize` stage) |
 | `tests/` | mirrors the package; 112 tests with data, 105 pass and 7 skip when `data/` is absent (simulated fresh clone) |
@@ -297,14 +276,12 @@ Installable package `solarwind` (src layout, `pyproject.toml`, `pip install -e .
 
 ## 7. DVC pipeline (done, local remote only)
 
-Data tracked by DVC (never by Git): `data/raw/cea` (`cea.dvc`), `data/raw/nasa` (`nasa.dvc`, 8 files), `data/raw/gridindia` (`gridindia.dvc`, 8 files). `git ls-files data` lists only `.gitignore` and `.dvc` files. `data/scratch/` is git-ignored and untracked (capacity probe PDFs).
+Data tracked by DVC (never by Git): `data/raw/cea` (`cea.dvc`), `data/raw/nasa` (`nasa.dvc`, 8 files), `data/raw/idp` (`idp.dvc`, 2 files). `git ls-files data` lists only `.gitignore` and `.dvc` files. `data/scratch/` is git-ignored and untracked (capacity probe PDFs).
 
 `dvc.yaml` stages (commands run the package modules from the repo root):
 - `parse_cea`: `python -m solarwind.data.cea.build_daily`. Deps `data/raw/cea`, the `cea` and `config` packages, `logging_setup.py`. Outs `data/processed/karnataka_daily.csv`, `flags.txt`, `parse_failures.txt`. Uses the relabel allow-list from `Settings`.
 - `validate_nasa`: `python -m solarwind.data.nasa.summary`. Deps `data/raw/nasa`, `config/sites.csv`, the `nasa` and `config` packages, `logging_setup.py`. Out `data/processed/nasa_summary.csv`. **Fails the pipeline** if a site file is missing or invalid, if a file in `data/raw/nasa` is not listed in `sites.csv`, or if two sites share a grid cell.
 - `featurize`: `python -m solarwind.features.build`. Deps `data/processed/karnataka_daily.csv`, `data/raw/nasa`, `config/sites.csv`, the `features` and `config` packages, `join.py`, `tables.py`, `nasa/loader.py`, `logging_setup.py`. Out `data/processed/features.csv`: **767 rows x 48 columns, train 495 rows (2024-06-30 to 2025-12-31), test 272 rows (2026-01-01 to 2026-09-30)**. The 8 CEA days after the NASA window (2026-10-01 to 10-08) are dropped. **The test window covers January to September only, with no October to December.** Output is deterministic (identical md5 on re-run, LF endings). Columns: `date`, `split`, targets `wind_mu`, `solar_mu`; calendar `month_sin`, `month_cos`, `doy_sin`, `doy_cos`; site-averaged weather `solar_` and `wind_` x {`ALLSKY_SFC_SW_DWN`, `T2M`, `WS10M`, `WS50M`}; `wind_shear` (ln(WS50M/WS10M)/ln(5), wind sites), `solar_irradiance_x_t2m`; weather rolling means (3 and 7 days, including the current day) and 1-day weather lags; target lags (1 and 7 days) and 7-day trailing target means (past days only). No capacity or capacity-factor features. The schema gate fails the stage on missing or unexpected columns, wrong dtypes, duplicate or unsorted dates, NaN outside the target lag and rolling columns or beyond 15% in them (measured maximum 10.6%), and split-boundary violations; `Settings` rejects any train/test overlap or a test start not after the train end. Every window, lag and feature group is in `Settings` and can be switched off.
-
-Nothing in the pipeline reads `data/raw/gridindia`; the PSP comparison command does.
 
 The refactor into the package was checked byte for byte earlier. The relabel changed `karnataka_daily.csv`, `parse_failures.txt` and `flags.txt` (one new line) as expected; `nasa_summary.csv` did not change. `dvc repro` is a no-op on a second run; `dvc status` is clean. No MLflow was touched and no model was trained.
 
@@ -315,20 +292,19 @@ The remote is a local folder (`C:\Users\kartik\dvc-remote-mlops`), outside the r
 ## 8. Remaining work
 
 ### Immediate (blocks the approval document)
-1. ~~Decide on `2025-06-24` and `2025-06-25`~~ Done: relabelled to 24 and 25 May 2025 (PSP match within 1%, section 5.4); 775 rows, 56 missing days.
+1. ~~Decide on `2025-06-24` and `2025-06-25`~~ Done: relabelled to 24 and 25 May 2025 (NASA irradiance and in-May cumulatives fit, section 5.4); 775 rows, 56 missing days.
 2. Choose a Karnataka monthly capacity source and a solar definition. Probed (section 5.5): MNRE state-wise PDFs give Karnataka solar and wind split, but only for 2024-04 to 2024-11 (archive) and 2026-09 (current page); there is no MNRE PDF for 2024-12 to 2026-08, and the rooftop, hybrid and KUSUM definitions changed over that gap. CEA monthly PDFs give combined RES only. Solar CF is 0.17 to 0.20 in every full month probed. Open: how to fill 2024-12 to 2026-08 (interpolation, other MNRE documents, or another source), total solar versus ground + hybrid, and district-level weights. Nothing chosen.
 3. Screenshots for the approval doc: portal last page is done (`docs/evidence/`); still needed: CEA licence, NASA data-use and India Data Portal licence pages. Licences are not recorded in the repo yet.
-4. Fill the approval doc fields only from files: CEA unit MU (net), range 2024-06-30 to 2026-10-08, 776 files, 775 usable rows, 56 missing days, NASA range and row counts from `nasa_summary.csv`. Mendeley end date and licence stay "to be confirmed" until the file is downloaded.
+4. Fill the approval doc fields only from files: CEA unit MU (net), range 2024-06-30 to 2026-10-08, 776 files, 775 usable rows, 56 missing days, NASA range and row counts from `nasa_summary.csv`.
 5. Rehearse the pitch and Q&A (section 9); know the CEA date range cold.
 
 ### Approval document updates still to make
-Dataset A source line: "CEA Daily Renewable Generation Report, CEA RE Generation Portal (gen-re.cea.gov.in)". Keep the India Data Portal copy as a convenience mirror. Add Grid-India PSP as a validation source, the multi-state pooling plan, and the note that installed capacity will be added. Coverage: CEA 2024-06-30 to 2026-10-08; NASA 2020-01-01 to 2026-09-30 at eight representative sites; weather beyond the CEA period held for drift experiments.
+Dataset A source line: "CEA Daily Renewable Generation Report, CEA RE Generation Portal (gen-re.cea.gov.in)". The India Data Portal copy (CEA origin) extends the history back to 2019-10-30. Add the multi-state pooling plan, and the note that installed capacity will be added. Coverage: CEA 2024-06-30 to 2026-10-08; NASA 2020-01-01 to 2026-09-30 at eight representative sites; weather beyond the CEA period held for drift experiments.
 
 ### Data work
 - State tariffs (regulator orders, e.g. KERC) as a small versioned table, or drop tariffs from risks and savings.
 - Optional: the 2026-02-19 report exists only as a PDF (Excel 404); decide whether to extract its Karnataka row by hand.
 - Add a `suspect` flag column; decide whether to drop the 2026-02-17/18 solar rows from training.
-- Mendeley v2: download, verify true end date and licence, run validation checks (midday solar peak, near-zero night solar, missing hours, three-day spot check against PSP).
 - Pooling: with about 2 years of CEA data, pool several states (state as a feature) for roughly 8,000 to 10,000 rows; each pooled state needs its own NASA sites and capacity data.
 - Optional: investigate the 22 non-stepping cumulative pairs (low priority; daily columns are what is used).
 - Push the repository and confirm the CI workflow runs (it has never run).
@@ -352,7 +328,7 @@ Weather data (NASA, `config/sites.csv`); generation data (CEA downloader, parser
 
 ## 9. Mentor Q&A cheat sheet
 
-**30-second pitch:** "Our platform predicts how much solar and wind energy a region produces so we can give households a realistic estimate. The first data source is real generation figures from the Central Electricity Authority, per state per day, which is what the model learns to predict. The second is weather from NASA POWER: sunlight, temperature, wind. Both are free official sources, not synthetic or generic Kaggle data. We have a backup hourly dataset from Grid-India if the CEA data has gaps."
+**30-second pitch:** "Our platform predicts how much solar and wind energy a region produces so we can give households a realistic estimate. The first data source is real generation figures from the Central Electricity Authority, per state per day, which is what the model learns to predict. The second is weather from NASA POWER: sunlight, temperature, wind. Both are free official sources, not synthetic or generic Kaggle data."
 
 | Question | Answer |
 |---|---|
@@ -362,7 +338,7 @@ Weather data (NASA, `config/sites.csv`); generation data (CEA downloader, parser
 | How are the datasets joined? | By date, and by state through the coordinates of generation sites. |
 | Why state-level, not household? | Measured data exists per state; we scale via capacity factor and state the limitation. |
 | How do you evaluate? | Time-based split against simple baselines using MAE and RMSE. |
-| What about gaps? | The CEA portal itself lists no report for 54 of the 831 days; they are logged and documented, and hourly data is the fallback. |
+| What about gaps? | The CEA portal itself lists no report for 54 of the 831 days; they are logged and documented, not filled. |
 | How is it versioned? | Git for code, DVC for data (with a validation stage that fails on bad data), MLflow for experiments. |
 | Why not hydro? | Output depends on reservoir management and catchment rainfall; households can't install it; covered as awareness content. |
 | CEA date range? | 2024-06-30 to 2026-10-08, first date confirmed on the portal's last list page; read final row and missing-day counts from the processed file. |
@@ -373,14 +349,12 @@ If unsure: "I'll confirm that from the file and update the document." Never gues
 
 ## 10. Unverified items (do not state as fact)
 
-Mendeley licence and true end date; NASA parameter names beyond the four used; the 4 kWh/day/kW rule of thumb; whether the ISGS park dataset covers Pavagada; whether any candidate capacity source (section 5.5) gives Karnataka monthly solar and wind in a scope matching the Generation target; DagsHub and Google Drive DVC auth flows for the installed version; whether CEA all-India figures share an upstream source with Grid-India PSP; cause of the 22 non-stepping cumulative pairs; whether the month picker on the CEA portal capacity card works for months other than Jun 2024; the contents of the MNRE and CEA installed-capacity PDFs (not opened).
+NASA parameter names beyond the four used; the 4 kWh/day/kW rule of thumb; whether the ISGS park dataset covers Pavagada; whether any candidate capacity source (section 5.5) gives Karnataka monthly solar and wind in a scope matching the Generation target; DagsHub and Google Drive DVC auth flows for the installed version; cause of the 22 non-stepping cumulative pairs; whether the month picker on the CEA portal capacity card works for months other than Jun 2024; the contents of the MNRE and CEA installed-capacity PDFs (not opened).
 
 ---
 
 ## 11. Source references
 - NASA POWER (power.larc.nasa.gov): daily meteorology and solar data, public API.
 - Central Electricity Authority, Government of India: Daily Renewable Generation Reports (gen-re.cea.gov.in); also compiled on the India Data Portal under the Open Data Commons Attribution License.
-- Grid-India (Grid Controller of India Ltd.), NLDC: Daily PSP Reports (grid-india.in/en/reports/daily-psp-report).
-- Mukherjee, Kalita, Kumar: Electricity Demand, Solar and Wind Generation Data of India at 1-hour interval, Mendeley Data, DOI 10.17632/y58jknpgs8 (data provided by NERLDC, Grid-India).
 
 Record download dates and exact URLs in the repository README and the model card.

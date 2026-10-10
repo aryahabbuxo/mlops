@@ -90,7 +90,6 @@ So the `Generation` Karnataka value is exactly the state-control value plus the 
 
 ## Still to check before the parser is final
 
-- **Which day `B5` describes.** Do not assume it is the generation date. Compare against a Grid-India PSP regional total for one date, or look for a "data for" note in the report.
 - **Negative and blank ISGS values.** Keep the raw sign in the raw layer. Decide on clipping in the cleaning step and log it.
 - **Parser assertions.** The label cell must contain Karnataka, and the parsed `B5` date must match the file name. Fail loudly otherwise.
 
@@ -134,17 +133,7 @@ Start date: probed `Report-YYYY-MM-DD.xlsx`. All monthly probes 2022-01 to 2024-
 
 **Check A (internal consistency).** For each pair of consecutive files, the month-to-date Karnataka columns should step by the daily value (and equal it on the 1st). It holds for 738 of 760 pairs. 22 pairs differ, for example 2024-09-14, 2024-09-17, 2025-02-10, 2025-02-17, 2025-03-26 to 03-28, 2025-05-14 and 2025-07-14. These are probably revised or restated cumulatives, and have not been investigated. B5 is a consistent day label.
 
-**Check B (against Grid-India PSP).** PSP report of 06-Oct-2026 (covers 05-Oct), as supplied: all-India solar 713 MU, wind 179 MU. CEA `Generation` all-India:
-
-| CEA file | Wind MU | Solar MU |
-|---|---|---|
-| 2026-10-04 | 192.27 | 690.92 |
-| **2026-10-05** | **178.98** | **712.80** |
-| 2026-10-06 | 129.46 | 702.88 |
-
-The CEA file dated 2026-10-05 matches PSP for 05-Oct (wind 178.98 vs 179, solar 712.80 vs 713). So B5 is the generation date and no date shift is needed.
-
-Caveats: one date only, and the PSP figures were supplied by the project owner, not checked here. The near-exact match is closer than expected, since CEA was expected to run higher. Repeat for two or three more PSP dates before relying on it.
+B5 confirmed as generation date during earlier work using Grid-India PSP; that source has since been removed. The seam with IDP is at 2024-06-30 and does not depend on it.
 
 ## Decisions on the rejected files
 
@@ -178,24 +167,3 @@ Screenshot: `docs/evidence/cea_reports_last_page.jpg` (last list page, `gen-re.c
 - The portal lists **54 fewer dates** than the 831 days in range, so those 54 gaps are real portal gaps, not blocked downloads: 2025-05-23 to 06-08 (17 days), 2025-06-30, 2025-07-17 to 07-20, 07-22, 07-24, 2025-07-29 to 08-21 (24 days), 2025-08-27, 08-28, 2025-09-02, 2025-09-30, 2025-10-22, 2025-10-27.
 - My 404 log has 55 dates. The extra one is **2026-02-19**: the portal lists it and its PDF returns 200, but the Excel URL returns 404 (checked twice). So 2026-02-19 exists only as a PDF.
 - The two late-filed files (listed under 2025-06-24 and 2025-06-25) are on the portal under their June names, which matches the relabelling decision.
-
-## B5 check against Grid-India PSP (5 reports)
-
-Source: `grid-india.in/en/reports/daily-psp-report` (the `report.grid-india.in` address in the handoff does not resolve). Downloaded the `.xls` versions of five reports into `data/raw/gridindia/` (not yet under DVC). Each file states `Report for previous day` and `Date of Reporting`; the data day is the reporting date minus one. The filename date equals the data day. The site's list "Date" column is the day after the filename date.
-
-All-India wind and solar totals (MU), PSP data day vs the CEA `Generation` All India row of the file with that same date:
-
-| PSP file | Reporting date | Data day | PSP wind / solar | CEA same-day wind / solar | Diff wind / solar |
-|---|---|---|---|---|---|
-| 30.09.26 | 01-Oct-2026 | Wed 2026-09-30 | 121.06 / 705.46 | 121.10 / 704.89 | +0.04 / -0.57 |
-| 02.10.26 | 03-Oct-2026 | Fri 2026-10-02 | 148.74 / 714.81 | 149.44 / 714.94 | +0.70 / +0.13 |
-| 04.10.26 | 05-Oct-2026 | Sun 2026-10-04 | 191.81 / 691.25 | 192.27 / 690.92 | +0.46 / -0.33 |
-| 05.10.26 | 06-Oct-2026 | Mon 2026-10-05 | 178.54 / 713.47 | 178.98 / 712.80 | +0.44 / -0.67 |
-| 06.10.26 | 07-Oct-2026 | Tue 2026-10-06 | 129.47 / 701.59 | 129.46 / 702.88 | -0.01 / +1.29 |
-
-In every case the CEA file with the same date as the PSP data day is the closest, within 0.5% on wind and 0.2% on solar, and the neighbouring days differ by 1.5% to 38%. **B5 is the generation date; no date shift is needed.** The earlier PSP figure (solar 713, wind 179, "06-Oct report") is the 05.10.26 file, whose reporting date is 06-Oct and data day 05-Oct. That matches the table above.
-
-Caveats:
-- One weekend data day is covered (Sunday 2026-10-04, file 04.10.26). The other four are Wed, Fri, Mon and Tue.
-- The match is tighter than expected if CEA includes plants that PSP undercounts, so the two may share an upstream source. This confirms the date alignment; it is not independent validation of the generation values.
-- The PSP `.xls` layout shifts by one row between reports (the `Date of Reporting` row is 2 or 3, wind and solar rows 9/10 or 10/11). Read it by label, not position.

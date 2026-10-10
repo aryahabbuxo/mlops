@@ -18,7 +18,6 @@ open items.
 | `src/solarwind/config/` | Pydantic settings (paths, URLs, date windows) and the validated site model |
 | `src/solarwind/data/cea/` | CEA downloader, workbook parser and daily Karnataka table build |
 | `src/solarwind/data/nasa/` | NASA POWER downloader, loader, validation and per-site summary |
-| `src/solarwind/data/gridindia/` | Grid-India PSP reader used to check date alignment |
 | `src/solarwind/features/` | Calendar, weather, lag and rolling features, the time-based split and the schema gate |
 | `config/sites.csv` | The generation regions used to build state weather |
 | `data/` | Raw and processed data. **Tracked by DVC, never by Git** |
@@ -56,7 +55,6 @@ Raw files are not in Git. Dates below are the file modification times of the fil
 |---|---|---|---|
 | CEA Daily Renewable Generation Report, `gen-re.cea.gov.in` | State-wise daily solar and wind generation (MU, net), one Excel report per day | 2024-06-30 to 2026-10-08; 776 files downloaded on 2026-10-10 | `python -m solarwind.data.cea.download` |
 | NASA POWER, `power.larc.nasa.gov` | Daily irradiance, temperature and wind (`ALLSKY_SFC_SW_DWN`, `T2M`, `WS10M`, `WS50M`), community `re` | 2020-01-01 to 2026-09-30, one file per site, downloaded on 2026-10-10 | `python -m solarwind.data.nasa.download` |
-| Grid-India daily PSP reports, `grid-india.in/en/reports/daily-psp-report` | All-India wind and solar totals, used only to check which day a CEA report describes | 8 spreadsheets downloaded on 2026-10-10 | manual download into `data/raw/gridindia/` |
 
 Licences and terms of use for these sources are not recorded in this repository yet; confirm
 them before redistributing any raw data. Per-site NASA facts (dates, rows, missing values, file
