@@ -200,14 +200,14 @@ Excel is used for parsing; PDFs add nothing (Hindi text extracts as garbage). Ru
 Target = **Generation sheet Karnataka row** (`wind_mu`, `solar_mu`). Secondary columns from State-Wise (`wind_state_control_mu`, `solar_state_control_mu`) kept at no cost. Reasoning: the weather features drive all Karnataka plants, the ISGS share grows over time (21 to 28 Karnataka stations between 2024 and 2026), and the capacity denominator must match the numerator's scope.
 
 ### 5.4 Downloaded and parsed
-- **Start date confirmed on the portal.** The Reports page lists 777 entries; the last list page shows `30-06-2024` as the earliest. Screenshot: `docs/evidence/cea_reports_last_page.jpg` (`docs/` is git-ignored, so the screenshot is local). Latest entry 08-10-2026.
+- **Start date confirmed on the portal.** The Reports page lists 777 entries; the last list page shows `30-06-2024` as the earliest. Screenshot: `docs/evidence/cea_reports_last_page.jpg` (tracked in Git). Latest entry 08-10-2026.
 - Coverage: 2024-06-30 to 2026-10-08 = 831 days. 776 files downloaded, 55 returned 404 (plain 404, no retryable errors). The portal does not list 54 of those dates, so they are real portal gaps. The 55th, **2026-02-19**, is listed and its PDF downloads, but the Excel URL returns 404 (checked twice).
 - Portal gaps cluster in May to Aug 2025: 2025-05-23 to 06-08, 06-30, 07-17 to 07-20, 07-22, 07-24, 07-29 to 08-21, 08-27, 08-28, 09-02, 09-30, 10-22, 10-27.
-- Processed table `data/processed/karnataka_daily.csv`: **773 rows, 58 missing days** (55 gaps plus 3 rejected files).
+- Processed table `data/processed/karnataka_daily.csv`: **775 rows, 56 missing days**, with columns `date`, `source_file`, `relabelled`, `wind_mu`, `solar_mu`, `wind_state_control_mu`, `solar_state_control_mu`. The 56 missing days are the 55 portal 404s minus the two dates now filled (2025-05-24 and 2025-05-25), plus 2025-06-24, 2025-06-25 (their filenames carry other dates) and 2025-10-14 (rejected).
+- Relabelled files (in the table, `relabelled = True`): `2025-06-24.xlsx` and `2025-06-25.xlsx` are late-filed May reports (internal B5 dates 24-May-25 and 25-May-25; those dates are 404 on the portal). They are accepted only through the config allow-list `cea_relabelled_files` in `Settings`; every other filename/B5 mismatch still fails, and the build fails if a relabelled date collides with a regularly named file. Evidence: Grid-India PSP data days 24 and 25 May 2025 match their B5 dates within 1% and the neighbouring files are clearly worse (table below); the NASA irradiance falls from 24 to 25 May as the file's solar does; in-May cumulatives fit (23 May implied wind 51.82 and solar 41.92). The pre-set month-to-date bracket after 25 May was not computable (the next file, 2025-06-09, restarts the month at 1 June).
 - Rejected files (kept out of the table, logged in `data/processed/parse_failures.txt`):
-  - `2025-06-24.xlsx`, `2025-06-25.xlsx`: internal dates are 24-May-25 and 25-May-25 (those dates are 404 on the portal, so likely late-filed May reports). **Still excluded; not relabelled.** Checks on the `Generation` sheet: (a) inside May, against 2025-05-22: cum(24) - cum(22) leaves wind 51.82 and solar 41.92 for 23 May (between the neighbouring days) and cum(25) - cum(24) equals the daily 25 May values exactly (wind 50.87, solar 29.12). (b) The pre-set bracket after 25 May cannot cover 26-31 May: the first existing later file is `2025-06-09`, whose month-to-date header reads "Cumulative Generation during Jun 2025", so it restarts at 1 June. It implies a sum for 1-8 June (all missing) of wind 316.66 and solar 371.64, i.e. 39.58 and 46.45 MU/day, both non-negative. Wind is inside the 9-14 June daily range (20.24 to 51.14); solar is above it (26.75 to 43.25), so the pass criterion ("within the range of neighbouring days") was not met, and no May day after 25 May is bracketed at all. If relabelled anyway: 775 rows and 56 missing days.
   - `2025-10-14.xlsx`: different format (single sheet `Sheet1`, long table with State, State Code, Date, Wind, Solar, ...; no Generation sheet). Excluded and documented.
-- Flags (logged in `data/processed/flags.txt`, not fixed): 2024-12-19 wind Generation 6.68 < State-Wise 6.77 (caused by negative ISGS values, not a parse error). 2026-02-17 and 02-18 solar: State-Wise 0.00 and Generation about 22 vs typical about 55; treat as suspect and add a `suspect` column in the processed layer.
+- Flags (logged in `data/processed/flags.txt`, not fixed): 2024-12-19 wind Generation 6.68 < State-Wise 6.77 (caused by negative ISGS values, not a parse error). 2026-02-17 and 02-18 solar: State-Wise 0.00 and Generation about 22 vs typical about 55; treat as suspect and add a `suspect` column in the processed layer. 2025-05-25 wind: Generation 50.87 < State-Wise 50.92 (the relabelled day; same cause, negative ISGS wind rows summing to -0.05). `flags.txt` therefore has 4 lines.
 - **B5 is the generation date** (no shift). Confirmed on five Grid-India PSP dates. All-India wind and solar totals (MU), PSP data day vs the CEA `Generation` All India row of the file with the same date:
 
 | PSP file | Reporting date | Data day | PSP wind / solar | CEA same-day wind / solar | Diff wind / solar |
@@ -220,36 +220,55 @@ Target = **Generation sheet Karnataka row** (`wind_mu`, `solar_mu`). Secondary c
 
   Each time, the same-date CEA file is the closest; neighbouring days differ by up to 38%. **Caveat: this is not independent validation.** The match is tighter than expected if CEA includes plants PSP undercounts, so CEA and PSP may share an upstream source. It confirms date alignment, not the generation values. Month-to-date step check: passed on 738 of 760 day pairs; the other 22 are probably restated cumulatives (not investigated).
 
-### 5.5 Karnataka installed capacity: probe of three reports (no source chosen)
-Three reports were downloaded on 10 Oct 2026 into `data/scratch/` (git-ignored, not under DVC) and read: CEA "Installed Capacity" for 2024-06 (as on 30.06.2024, 271,316 bytes, 7 pages) and 2026-08 (as on 31.08.2026, 496,727 bytes, 8 pages), and MNRE "State wise RE Installed Capacity as on 30.09.2026" (249,641 bytes, 1 page; the MNRE page labelled it 151 KB). Candidate-source list from the earlier page reads: the MNRE page `mnre.gov.in/en/physical-progress/` (monthly, latest September 2026; the Archive start month was not stated), the CEA list at `cea.nic.in/reports/dashboardView?headingId=107&subHeadingId=1003&subSubHeadingId=10014&lang=en` (119 monthly PDFs, 2014-03 to 2026-08, some months missing, Excel only for 2026-06), MNRE "Year wise Achievements" (annual, no solar split), RE-Statistics and the NITI Aayog ICED dashboard (not opened), KREDL (not opened). No source found gives monthly district-level capacity; a Lok Sabha reply has a one-off district solar table as on 31-12-2021.
+**May 2025 check for the relabelled files** (PSP files 24.05.25, 25.05.25 and 26.05.25 downloaded into `data/raw/gridindia/`; the filename date is the data day in 2025 as in 2026). All-India MU, PSP vs the CEA files that exist (22 May file, and the two relabelled files):
 
-**CEA monthly report: Karnataka RES (MW), table "Installed capacity of power utilities in the states/UTs ... including allocated shares in joint and central sector utilities", mode-wise breakup.**
+| PSP data day | PSP wind / solar | vs CEA 24 May file (`2025-06-24.xlsx`) | vs CEA 25 May file (`2025-06-25.xlsx`) | vs CEA 22 May file |
+|---|---|---|---|---|
+| 2025-05-24 | 389.58 / 448.10 | 389.85 / 447.34 (+0.1% / -0.2%) | 369.03 / 348.36 (-5.3% / -22.3%) | 290.08 / 473.63 (-25.5% / +5.7%) |
+| 2025-05-25 | 368.73 / 350.32 | 389.85 / 447.34 (+5.7% / +27.7%) | 369.03 / 348.36 (+0.1% / -0.6%) | 290.08 / 473.63 (-21.3% / +35.2%) |
 
-| Report | State | Private | Central | Sub-total RES (MNRE) | Hydro | Renewable total (hydro + RES) |
-|---|---|---|---|---|---|---|
-| 2024-06 (30.06.2024) | 193.89 | 18283.95 | 0.00 | 18477.83 | 3631.60 | 22109.43 |
-| 2026-08 (31.08.2026) | 436.59 | 23108.01 | 640.00 | 24184.60 | 3631.60 | 27816.20 |
+The neighbouring PSP day 26 May (439.93 / 395.36) differs from the 25 May file by -16.1% wind and -11.9% solar. NASA irradiance (mean of the 4 solar sites, kWh/m2/day) vs `solar_mu`: 22 May 5.296 vs 39.95; 23 May 4.910 vs 41.92 (implied); 24 May 4.079 vs 36.00; 25 May 3.472 vs 29.12; 26 and 27 May 2.767 and 3.722 (no CEA value).
 
-Includes: RES = small hydro, biomass, urban and industrial waste, solar and wind, by ownership sector. **There is no Karnataka solar or wind split**: the solar/wind/bio break-up in the footnote is all-India only (its solar footnote lists ground mounted, rooftop, hybrid and off-grid/KUSUM). So the CEA monthly PDFs cannot give a per-source capacity factor.
+### 5.5 Karnataka installed capacity: probes (no source chosen)
+Downloaded on 10 Oct 2026 into `data/scratch/` (git-ignored, not under DVC) and read: two CEA "Installed Capacity" PDFs (2024-06 and 2026-08) and four MNRE state-wise PDFs (as on 30.06.2024, 30.09.2024, 30.11.2024 and 30.09.2026). Nothing else was downloaded; no source or solar definition has been chosen.
 
-**MNRE state-wise (location based) report: Karnataka (MW) as on 30.09.2026.**
+**MNRE archive finding.** `mnre.gov.in/en/archive/` lists 19 items: "Installed Capacity (Month-wise)" for April to November 2024 (8 monthly PDFs, no gaps; titled "Installed Capacity as on DD.MM.2024" but the PDFs are the state-wise tables) and "Cumulative Installed Capacity (Financial Year-wise)" as on 31 March from 2014 to 2024. The page has no filters or pagination and nothing after 30.11.2024. The only later state-wise file is the current one on `mnre.gov.in/en/physical-progress/` (as on 30.09.2026). **There is no MNRE state-wise PDF for December 2024 to August 2026**, so a monthly series for that period cannot come from these pages. Third-party copies exist (for example a 30.09.2024 copy on indianwindpower.com and aggregator pages) but were not used. Earlier months before 2024-06 exist in the archive but are outside the analysis window.
 
-| Ground mounted | RTS (incl. PM-Surya Ghar) | Hybrid solar comp. | Off-grid solar / KUSUM comp. B | Solar total | Wind | Bio-power total | Small hydro | Large hydro | Total RE |
-|---|---|---|---|---|---|---|---|---|---|
-| 10584.53 | 945.10 | 586.75 | 231.65 | 12348.02 | 8973.74 | 1917.05 | 1284.73 | 3689.20 | 28212.74 |
+**Karnataka capacity (MW) per MNRE snapshot.** Column names are as printed in each PDF; the rooftop column is "PM-Surya Ghar Yojna" (30.06.2024), "PM-Surya Ghar Yojna (Solar Rooftop)" (30.09.2024, 30.11.2024) and "RTS (including PM-Surya Ghar Yojana)" (30.09.2026).
 
-Includes: ground mounted, rooftop (RTS), hybrid solar component, off-grid solar and PM-KUSUM, wind, biomass, waste-to-energy, small and large hydro. The solar and RE totals reconcile with the columns, and the national totals (solar 171,051.46 MW, wind 59,201.07 MW) match the physical-progress page.
+| As on | Ground mounted | Rooftop | Hybrid | Off-grid / KUSUM | Solar total | Wind | Bio-power | Small hydro | Large hydro | Total RE |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 30.06.2024 | 8189.36 | 593.90 | 0.00 | 36.51 | 8819.77 | 6469.61 | 1907.72 | 1280.73 | 3689.20 | 22167.03 |
+| 30.09.2024 | 8261.33 | 632.13 | 0.00 | 36.64 | 8930.10 | 6564.36 | 1909.95 | 1284.73 | 3689.20 | 22378.34 |
+| 30.11.2024 | 8288.78 | 648.50 | 0.00 | 38.37 | 8975.65 | 6724.37 | 1909.95 | 1284.73 | 3689.20 | 22583.90 |
+| 30.09.2026 | 10584.53 | 945.10 | 586.75 | 231.65 | 12348.02 | 8973.74 | 1917.05 | 1284.73 | 3689.20 | 28212.74 |
 
-**Capacity factor** for September 2026 (the month matching 30.09.2026), CF = mean daily MU x 1000 / (MW x 24), using `karnataka_daily.csv` (30 days; Generation scope means: wind 39.709, solar 51.317 MU/day):
+All four reconcile (solar parts equal the solar total, all parts equal the total, to within 0.01 MW). The solar total includes off-grid and rooftop; "location based" means by state of the plant.
 
-| Source | Capacity used (MW) | CF | Check |
-|---|---|---|---|
-| Wind | 8973.74 | 0.184 | no range given |
-| Solar, total | 12348.02 | 0.173 | inside 0.15 to 0.25 |
-| Solar, ground mounted + hybrid | 11171.28 | 0.191 | inside |
-| Solar, ground mounted only | 10584.53 | 0.202 | inside |
+**Capacity factor** CF = mean daily MU x 1000 / (MW x 24) for the month of each snapshot, from `karnataka_daily.csv` (Generation scope):
 
-Sensitivity: with the state-control-only generation, CF drops to wind 0.141 and solar 0.109 (solar outside the expected range), which supports using the Generation scope as the target. CEA 2024-06 has only one daily row (30 June) in the daily table, and CEA 2026-08 has no solar or wind capacity, so no CEA capacity factor was computed. Limits: capacity is a month-end snapshot while generation is a monthly mean; the MNRE Archive (earlier months) was not probed, so a monthly capacity series is not yet available; no district-level capacity found. **No source has been chosen.** The portal dashboard widgets (all-India and region-wise) cannot be filtered to Karnataka.
+| Month | Days | Wind MU/day | Solar MU/day | Wind CF | Solar CF, total | Solar CF, ground + hybrid | Solar CF, ground only |
+|---|---|---|---|---|---|---|---|
+| 2024-06 | 1 (30 June only) | 49.19 | 28.41 | 0.317 | 0.134 (outside) | 0.145 (outside) | 0.145 (outside) |
+| 2024-09 | 30 | 40.77 | 38.84 | 0.259 | 0.181 | 0.196 | 0.196 |
+| 2024-11 | 30 | 18.72 | 38.95 | 0.116 | 0.181 | 0.196 | 0.196 |
+| 2026-09 | 30 | 39.71 | 51.32 | 0.184 | 0.173 | 0.191 | 0.202 |
+
+Solar CF is inside 0.15 to 0.25 for every full month under all three definitions; the only out-of-range values come from the June 2024 row, which rests on one monsoon day. The solar CF is stable across the two years (0.17 to 0.20), which is a good consistency sign for the capacity and generation scopes. Wind CF follows the monsoon (0.26 in September, 0.12 in November, 0.18 in September 2026). With state-control-only generation the September 2026 CF drops to wind 0.141 and solar 0.109, supporting the Generation scope as target.
+
+**Definition consistency across snapshots (not resolved):**
+1. Title: "State-wise installed capacity" (30.06.2024) became "State-wise (Location based) installed capacity" from 30.09.2024.
+2. The rooftop column was renamed twice, finally to "RTS (including PM-Surya Ghar Yojana)" (30.09.2026), which may be a wider scope than "PM-Surya Ghar" alone. Layout also changed: 2026 puts solar columns first, adds "State LGD Code", and labels off-grid "Off-grid Solar/ KUSUM Comp.B".
+3. Hybrid solar is 0.00 in all 2024 snapshots and 586.75 MW in 2026 (national hybrid 2590.95 in June 2024 to 5362.47 in 2026): new projects or reclassification cannot be told apart.
+4. Off-grid / KUSUM 38.37 (Nov 2024) to 231.65 MW (Sep 2026) and rooftop 648.50 to 945.10: plausible scheme growth, but not separable from definition changes.
+5. Month-to-month steps inside 2024 are smooth (Karnataka ground +24 MW/month Jun to Sep, +14 MW/month Sep to Nov; wind +32 then +80 MW/month; small hydro +4 MW once). The 22-month gap from November 2024 to September 2026 averages ground +104 MW/month and wind +102 MW/month, with no intermediate snapshot to check for a step change.
+6. Large hydro is constant at 3689.20 MW; the national total in the first snapshot (195,012.81 MW) equals the CEA portal capacity card for Jun 2024.
+
+**Growth cross-check.** MNRE Karnataka solar + wind: 15289.38 MW (June 2024) to 21321.76 MW (September 2026), +6032.38 MW (+39.5%) over 27 months (solar +40.0%, wind +38.7%). MNRE solar + wind + bio + small hydro (the CEA "RES (MNRE)" scope) equals the CEA Karnataka RES sub-total exactly in June 2024 (18477.83 MW), and grows 18477.83 to 24523.54 MW (+6045.71 MW, +32.7%) over 27 months; the CEA RES sub-total itself grows 18477.83 (2024-06) to 24184.60 MW (2026-08), +5706.77 MW (+30.9%) over 26 months. The 338.94 MW gap is the extra month (MNRE September vs CEA August). Both sources agree on growth; nationally solar doubled (+100.1%) and wind grew +26.9%, so Karnataka's share of national solar fell from 10.3% to 7.2% and wind rose from 13.9% to 15.2%.
+
+**CEA monthly "Installed Capacity" PDFs (2024-06, 2026-08).** Karnataka RES (MNRE) in MW: 2024-06 State 193.89, Private 18283.95, Central 0.00, sub-total 18477.83 (hydro 3631.60; renewable total 22109.43); 2026-08 State 436.59, Private 23108.01, Central 640.00, sub-total 24184.60 (hydro 3631.60; renewable total 27816.20). RES means small hydro, biomass, waste, solar and wind combined by ownership sector, including allocated shares in joint and central sector utilities. There is **no Karnataka solar or wind split** (the break-up is all-India only), so these PDFs cannot give per-source capacity.
+
+**Other candidates, not opened:** MNRE RE-Statistics annual PDFs, NITI Aayog ICED (shows state potential; installed-capacity chart text unreadable), KREDL. No source gives monthly district-level capacity (needed later to weight sites); a Lok Sabha reply has a one-off district solar table as on 31-12-2021. The CEA reports pages other than the `dashboardView` links return a login screen.
 
 ---
 
@@ -263,9 +282,10 @@ Installable package `solarwind` (src layout, `pyproject.toml`, `pip install -e .
 | `src/solarwind/data/cea/` | `download.py`, `parse.py` (asserts: Karnataka label present, exactly one Karnataka row, `B5` date equals the filename date and matches across sheets), `build_daily.py` |
 | `src/solarwind/data/nasa/` | `download.py`, `loader.py` (-999 becomes float NaN), `validate.py`, `summary.py` |
 | `src/solarwind/data/gridindia/psp.py` | label-based PSP reader and the five-date comparison (`python -m solarwind.data.gridindia.psp`) |
-| `src/solarwind/data/tables.py`, `join.py` | readers for the processed tables and the weighted NASA join |
-| `tests/` | mirrors the package; 71 tests with data, 64 pass and 7 skip when `data/` is absent (simulated fresh clone) |
-| `notebooks/01_explore.ipynb` | exploration, committed with outputs cleared |
+| `src/solarwind/data/tables.py`, `join.py`, `quality.py` | readers for the processed tables, the weighted NASA join, and outlier (Tukey, multiplier in `Settings`) and seasonality helpers |
+| `src/solarwind/features/` | `calendar.py`, `weather.py`, `lags.py`, `split.py`, `schema.py` (the gate), `build.py` (the `featurize` stage) |
+| `tests/` | mirrors the package; 112 tests with data, 105 pass and 7 skip when `data/` is absent (simulated fresh clone) |
+| `notebooks/01_explore.ipynb` | exploration (distributions and outliers, seasonality, correlations, conclusions; capacity sections marked blocked), committed with outputs cleared; executed export in `docs/exploration_report.html` (1.0 MB) |
 | `scripts/` | two one-off exploration scripts (not pipeline code) |
 | `config/sites.csv`, `dvc.yaml`, `dvc.lock`, `data/raw/*.dvc` | site config and DVC pipeline |
 | `README.md`, `HANDOFF.md`, `docs/` | docs; `docs/` holds the CEA layout notes, NASA notes and the portal screenshot (68 KB) |
@@ -277,27 +297,28 @@ Installable package `solarwind` (src layout, `pyproject.toml`, `pip install -e .
 
 ## 7. DVC pipeline (done, local remote only)
 
-Data tracked by DVC (never by Git): `data/raw/cea` (`cea.dvc`), `data/raw/nasa` (`nasa.dvc`, 8 files), `data/raw/gridindia` (`gridindia.dvc`, 5 files). `git ls-files data` lists only `.gitignore` and `.dvc` files.
+Data tracked by DVC (never by Git): `data/raw/cea` (`cea.dvc`), `data/raw/nasa` (`nasa.dvc`, 8 files), `data/raw/gridindia` (`gridindia.dvc`, 8 files). `git ls-files data` lists only `.gitignore` and `.dvc` files. `data/scratch/` is git-ignored and untracked (capacity probe PDFs).
 
 `dvc.yaml` stages (commands run the package modules from the repo root):
-- `parse_cea`: `python -m solarwind.data.cea.build_daily`. Deps `data/raw/cea`, the `cea` and `config` packages, `logging_setup.py`. Outs `data/processed/karnataka_daily.csv`, `flags.txt`, `parse_failures.txt`.
-- `validate_nasa`: `python -m solarwind.data.nasa.summary`. Deps `data/raw/nasa`, `config/sites.csv`, the `nasa` and `config` packages, `logging_setup.py`. Out `data/processed/nasa_summary.csv`. **Fails the pipeline** if a site file is missing or invalid (row count, date range, header coordinates), if a file in `data/raw/nasa` is not listed in `sites.csv`, or if two sites share a grid cell.
+- `parse_cea`: `python -m solarwind.data.cea.build_daily`. Deps `data/raw/cea`, the `cea` and `config` packages, `logging_setup.py`. Outs `data/processed/karnataka_daily.csv`, `flags.txt`, `parse_failures.txt`. Uses the relabel allow-list from `Settings`.
+- `validate_nasa`: `python -m solarwind.data.nasa.summary`. Deps `data/raw/nasa`, `config/sites.csv`, the `nasa` and `config` packages, `logging_setup.py`. Out `data/processed/nasa_summary.csv`. **Fails the pipeline** if a site file is missing or invalid, if a file in `data/raw/nasa` is not listed in `sites.csv`, or if two sites share a grid cell.
+- `featurize`: `python -m solarwind.features.build`. Deps `data/processed/karnataka_daily.csv`, `data/raw/nasa`, `config/sites.csv`, the `features` and `config` packages, `join.py`, `tables.py`, `nasa/loader.py`, `logging_setup.py`. Out `data/processed/features.csv`: **767 rows x 48 columns, train 495 rows (2024-06-30 to 2025-12-31), test 272 rows (2026-01-01 to 2026-09-30)**. The 8 CEA days after the NASA window (2026-10-01 to 10-08) are dropped. **The test window covers January to September only, with no October to December.** Output is deterministic (identical md5 on re-run, LF endings). Columns: `date`, `split`, targets `wind_mu`, `solar_mu`; calendar `month_sin`, `month_cos`, `doy_sin`, `doy_cos`; site-averaged weather `solar_` and `wind_` x {`ALLSKY_SFC_SW_DWN`, `T2M`, `WS10M`, `WS50M`}; `wind_shear` (ln(WS50M/WS10M)/ln(5), wind sites), `solar_irradiance_x_t2m`; weather rolling means (3 and 7 days, including the current day) and 1-day weather lags; target lags (1 and 7 days) and 7-day trailing target means (past days only). No capacity or capacity-factor features. The schema gate fails the stage on missing or unexpected columns, wrong dtypes, duplicate or unsorted dates, NaN outside the target lag and rolling columns or beyond 15% in them (measured maximum 10.6%), and split-boundary violations; `Settings` rejects any train/test overlap or a test start not after the train end. Every window, lag and feature group is in `Settings` and can be switched off.
 
 Nothing in the pipeline reads `data/raw/gridindia`; the PSP comparison command does.
 
-The refactor into the package was checked byte for byte: `karnataka_daily.csv`, `flags.txt` and `parse_failures.txt` hash identically before and after; `nasa_summary.csv` changed only when the sites went from 4 to 8. `dvc repro` is a no-op on a second run; `dvc status` is clean.
+The refactor into the package was checked byte for byte earlier. The relabel changed `karnataka_daily.csv`, `parse_failures.txt` and `flags.txt` (one new line) as expected; `nasa_summary.csv` did not change. `dvc repro` is a no-op on a second run; `dvc status` is clean. No MLflow was touched and no model was trained.
 
-The remote is a local folder (`C:\Users\kartik\dvc-remote-mlops`), outside the repo. **Teammates cannot reach it, so do not tell them to `dvc pull` until it is swapped for the shared remote (DagsHub or Google Drive) and that change is committed.** Credentials with `--local`, never committed. The shared-remote auth flow is **[UNVERIFIED]** against the installed DVC version. A fresh-clone `dvc pull` proof was skipped on request; an earlier trial showed the outputs reproduce byte-identically and surfaced a CRLF issue, since fixed with `.gitattributes`.
+The remote is a local folder (`C:\Users\kartik\dvc-remote-mlops`), outside the repo, and was not changed. **Teammates cannot reach it, so do not tell them to `dvc pull` until it is swapped for the shared remote (DagsHub or Google Drive) and that change is committed.** Credentials with `--local`, never committed. The shared-remote auth flow is **[UNVERIFIED]** against the installed DVC version. A fresh-clone `dvc pull` proof was skipped on request.
 
 ---
 
 ## 8. Remaining work
 
 ### Immediate (blocks the approval document)
-1. Decide on `2025-06-24` and `2025-06-25` (relabel to 24 and 25 May, or keep excluded). They stay excluded for now: the bracket after 25 May cannot cover 26-31 May and the implied 1-8 June solar mean is above the 9-14 June range (section 5.4). The in-May checks fit. If relabelled: 775 rows and 56 missing days; otherwise 773 and 58.
-2. Choose a Karnataka monthly capacity source. Probed (section 5.5): the MNRE state-wise PDF is the only report with Karnataka solar (12348.02 MW) and wind (8973.74 MW) split, for one month (30.09.2026); the CEA monthly PDFs give combined RES only. September 2026 capacity factors are wind 0.184 and solar 0.173 (inside 0.15 to 0.25). Open: how to get earlier months (MNRE Archive not probed), whether to use total solar or exclude off-grid/rooftop, and district-level weights. Nothing chosen.
+1. ~~Decide on `2025-06-24` and `2025-06-25`~~ Done: relabelled to 24 and 25 May 2025 (PSP match within 1%, section 5.4); 775 rows, 56 missing days.
+2. Choose a Karnataka monthly capacity source and a solar definition. Probed (section 5.5): MNRE state-wise PDFs give Karnataka solar and wind split, but only for 2024-04 to 2024-11 (archive) and 2026-09 (current page); there is no MNRE PDF for 2024-12 to 2026-08, and the rooftop, hybrid and KUSUM definitions changed over that gap. CEA monthly PDFs give combined RES only. Solar CF is 0.17 to 0.20 in every full month probed. Open: how to fill 2024-12 to 2026-08 (interpolation, other MNRE documents, or another source), total solar versus ground + hybrid, and district-level weights. Nothing chosen.
 3. Screenshots for the approval doc: portal last page is done (`docs/evidence/`); still needed: CEA licence, NASA data-use and India Data Portal licence pages. Licences are not recorded in the repo yet.
-4. Fill the approval doc fields only from files: CEA unit MU (net), range 2024-06-30 to 2026-10-08, 776 files, usable rows and missing days (after decision 1), NASA range and row counts from `nasa_summary.csv`. Mendeley end date and licence stay "to be confirmed" until the file is downloaded.
+4. Fill the approval doc fields only from files: CEA unit MU (net), range 2024-06-30 to 2026-10-08, 776 files, 775 usable rows, 56 missing days, NASA range and row counts from `nasa_summary.csv`. Mendeley end date and licence stay "to be confirmed" until the file is downloaded.
 5. Rehearse the pitch and Q&A (section 9); know the CEA date range cold.
 
 ### Approval document updates still to make
@@ -312,14 +333,14 @@ Dataset A source line: "CEA Daily Renewable Generation Report, CEA RE Generation
 - Optional: investigate the 22 non-stepping cumulative pairs (low priority; daily columns are what is used).
 - Push the repository and confirm the CI workflow runs (it has never run).
 
-### Phase 1 build (not started: no features, no models yet)
+### Phase 1 build
+Done: exploration notebook with conclusions; feature table and time-based split under DVC (section 7). Not started: capacity or capacity-factor features (blocked on the capacity decision), baselines, models, MLflow (not touched).
 1. Shared environment smoke test (import all tools, log a dummy MLflow run, FastAPI hello endpoint, tiny Docker image) on all four laptops and in GitHub Actions; WSL2 for Docker Desktop on Windows.
-2. Features and cleaning decisions from the exploration notebook (missing days, flagged dates, capacity trend).
-3. DVC pipeline: extend with preprocess, featurize, train stages.
-4. Baselines and models, each an MLflow run (SQLite backend, not the file store): persistence, day-of-year average, linear irradiance model; then Ridge, Random Forest, Gradient Boosting.
-5. Evaluate and produce the comparison table for the presentation.
+2. Cleaning decisions from the notebook: keep the ~1% outliers (real monsoon wind peaks and cloudy days); a seasonal or residual check for suspect days such as 2026-02-17/18 solar (the global Tukey rule misses them); a `suspect` column.
+3. Baselines, each an MLflow run (SQLite backend, not the file store): persistence, day-of-year average, linear irradiance model; then Ridge, Random Forest, Gradient Boosting. Evaluate per season because the test window is January to September only.
+4. Evaluate and produce the comparison table for the presentation.
 
-Modeling plan: **time-based split** (e.g. train 2024-06 to 2025, test 2026), never random; keep the Phase 1 evaluation split distinct from the Phase 3 drift simulation (train Jan to Sep, test on shifted season). Features: lags, rolling means, cyclical month and day of year, irradiance x temperature, wind shear, clearness index, capacity trend. Metrics: MAE, RMSE, R2, MAE as share of mean generation. MLflow logs: data version (md5 from the `.dvc` file and Git commit), features, params, metrics, predicted-vs-actual plots.
+Modeling plan: **time-based split** (train 2024-06-30 to 2025-12-31, test 2026-01-01 to 2026-09-30), never random; keep the Phase 1 evaluation split distinct from the Phase 3 drift simulation. Metrics: MAE, RMSE, R2, MAE as share of mean generation. MLflow logs: data version (md5 from the `.dvc` file and Git commit), features, params, metrics, predicted-vs-actual plots.
 
 ### Phase 2 and 3 (later)
 PyTest model tests and physical-limit checks, MLflow registry with champion/challenger aliases, FastAPI service with pydantic validation, Docker, GitHub Actions CI/CD, deployment, Evidently drift monitoring, Prometheus/Grafana or Power BI, simulated production data, retraining trigger, model card, final report and demo, Streamlit front end, optional 2D/3D visuals. NASA latency (about 2 to 3 days meteorological, 5 to 7 days solar) means serving uses typical-year or recent-average weather; the R4 fallback should read "cached climatology".

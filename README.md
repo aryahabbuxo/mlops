@@ -19,6 +19,7 @@ open items.
 | `src/solarwind/data/cea/` | CEA downloader, workbook parser and daily Karnataka table build |
 | `src/solarwind/data/nasa/` | NASA POWER downloader, loader, validation and per-site summary |
 | `src/solarwind/data/gridindia/` | Grid-India PSP reader used to check date alignment |
+| `src/solarwind/features/` | Calendar, weather, lag and rolling features, the time-based split and the schema gate |
 | `config/sites.csv` | The generation regions used to build state weather |
 | `data/` | Raw and processed data. **Tracked by DVC, never by Git** |
 | `tests/` | Pytest suite mirroring the package layout |
@@ -55,7 +56,7 @@ Raw files are not in Git. Dates below are the file modification times of the fil
 |---|---|---|---|
 | CEA Daily Renewable Generation Report, `gen-re.cea.gov.in` | State-wise daily solar and wind generation (MU, net), one Excel report per day | 2024-06-30 to 2026-10-08; 776 files downloaded on 2026-10-10 | `python -m solarwind.data.cea.download` |
 | NASA POWER, `power.larc.nasa.gov` | Daily irradiance, temperature and wind (`ALLSKY_SFC_SW_DWN`, `T2M`, `WS10M`, `WS50M`), community `re` | 2020-01-01 to 2026-09-30, one file per site, downloaded on 2026-10-10 | `python -m solarwind.data.nasa.download` |
-| Grid-India daily PSP reports, `grid-india.in/en/reports/daily-psp-report` | All-India wind and solar totals, used only to check which day a CEA report describes | 5 spreadsheets downloaded on 2026-10-10 | manual download into `data/raw/gridindia/` |
+| Grid-India daily PSP reports, `grid-india.in/en/reports/daily-psp-report` | All-India wind and solar totals, used only to check which day a CEA report describes | 8 spreadsheets downloaded on 2026-10-10 | manual download into `data/raw/gridindia/` |
 
 Licences and terms of use for these sources are not recorded in this repository yet; confirm
 them before redistributing any raw data. Per-site NASA facts (dates, rows, missing values, file
@@ -71,7 +72,7 @@ simplification. Each site must be a distinct NASA grid cell, which the pipeline 
 ## Running the pipeline
 
 ```bash
-python -m dvc repro               # runs parse_cea and validate_nasa
+python -m dvc repro               # runs parse_cea, validate_nasa and featurize
 python -m dvc status              # "Data and pipelines are up to date" when nothing changed
 ```
 
@@ -79,10 +80,24 @@ python -m dvc status              # "Data and pipelines are up to date" when not
 |---|---|---|---|
 | `parse_cea` | `python -m solarwind.data.cea.build_daily` | `data/raw/cea` | `data/processed/karnataka_daily.csv`, `flags.txt`, `parse_failures.txt` |
 | `validate_nasa` | `python -m solarwind.data.nasa.summary` | `data/raw/nasa`, `config/sites.csv` | `data/processed/nasa_summary.csv` |
+| `featurize` | `python -m solarwind.features.build` | `data/processed/karnataka_daily.csv`, `data/raw/nasa`, `config/sites.csv` | `data/processed/features.csv` |
 
 `parse_cea` fails loudly on structural problems and lists rejected files in
 `parse_failures.txt`. `validate_nasa` fails if a site file is missing or invalid, if a file in
 `data/raw/nasa` is not listed in `config/sites.csv`, or if two sites share a grid cell.
+
+## Features and the train/test split
+
+`featurize` builds `data/processed/features.csv`: one row per CEA day that has NASA weather, with a
+`split` column. The split is **time-based, never random**: train is 2024-06-30 to 2025-12-31 and
+test is 2026-01-01 to 2026-09-30 (NASA weather ends on 2026-09-30). **The test window covers
+January to September only; it contains no October to December**, so results must be read per
+season. The windows, the feature groups (calendar, weather averages, wind shear, irradiance x
+temperature, weather and target lags and rolling means) and their lags and windows are all in
+`Settings` (`src/solarwind/config/settings.py`) and can be overridden with `SOLARWIND_*`
+variables; each group can be switched off. Target lags and rolling means use past days only.
+A schema gate fails the stage on missing or unexpected columns, wrong dtypes, duplicate or
+unsorted dates, NaN beyond the configured allowance, or any split-boundary violation.
 
 ## Tests and linting
 
