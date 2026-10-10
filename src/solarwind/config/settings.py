@@ -29,8 +29,7 @@ class Settings(BaseSettings):
     cea_sleep_s: float = 1.0
     cea_timeout_s: float = 60.0
     # Late-filed May 2025 reports published under June filenames. A file listed here may have a
-    # B5 date different from its filename, but only the listed date. Confirmed against Grid-India
-    # PSP data days 2025-05-24 and 2025-05-25 (within 1%, neighbouring days clearly worse).
+    # B5 date different from its filename, but only the listed date.
     cea_relabelled_files: dict[str, date] = {
         "2025-06-24.xlsx": date(2025, 5, 24),
         "2025-06-25.xlsx": date(2025, 5, 25),
@@ -102,11 +101,6 @@ class Settings(BaseSettings):
     def nasa_raw_dir(self) -> Path:
         """Folder with one NASA POWER CSV per site."""
         return self.data_dir / "raw" / "nasa"
-
-    @property
-    def gridindia_raw_dir(self) -> Path:
-        """Folder with the Grid-India PSP spreadsheets."""
-        return self.data_dir / "raw" / "gridindia"
 
     @property
     def processed_dir(self) -> Path:
