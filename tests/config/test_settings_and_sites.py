@@ -71,6 +71,10 @@ def test_invalid_rows_are_rejected(tmp_path, row):
         load_sites(write_sites(tmp_path, row))
 
 
-def test_repository_sites_file_is_valid():
+def test_repository_sites_file_has_four_equal_weight_sites_per_source():
     sites = load_sites(Settings().sites_csv)
-    assert {s.source_type for s in sites} == {"solar", "wind"}
+    for source in ("solar", "wind"):
+        group = [s for s in sites if s.source_type == source]
+        assert len(group) == 4
+        assert {s.weight for s in group} == {0.25}
+    assert len({s.filename for s in sites}) == 8
