@@ -21,7 +21,7 @@ def write_site_file(settings: Settings, site, **kwargs) -> Path:
 def test_build_url_uses_site_and_window():
     settings = Settings()
     url = download.build_url(make_site(), settings)
-    assert "start=20200101&end=20260930" in url
+    assert "start=20191030&end=20260930" in url
     assert "latitude=14.0145&longitude=77.3647" in url
     assert "parameters=ALLSKY_SFC_SW_DWN,T2M,WS10M,WS50M" in url
 
