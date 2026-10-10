@@ -10,8 +10,8 @@ stages:
       nfiles: 783
     - path: src/solarwind/config
       hash: md5
-      md5: 271ef21f3ab5243493d8f326cdc5f112.dir
-      size: 20086
+      md5: bfaf5288ce9f2956a525171f9c42d6df.dir
+      size: 20088
       nfiles: 6
     - path: src/solarwind/data/cea
       hash: md5
@@ -44,13 +44,13 @@ stages:
       size: 723
     - path: data/raw/nasa
       hash: md5
-      md5: c845a94d906c158d68319d2a18e4451c.dir
-      size: 667248
+      md5: 8d414c53fb83b7022985ddb9377effcb.dir
+      size: 684533
       nfiles: 8
     - path: src/solarwind/config
       hash: md5
-      md5: d58f72989f025fa6042c7994ccbe5a69.dir
-      size: 19018
+      md5: bfaf5288ce9f2956a525171f9c42d6df.dir
+      size: 20088
       nfiles: 6
     - path: src/solarwind/data/nasa
       hash: md5
@@ -64,7 +64,7 @@ stages:
     outs:
     - path: data/processed/nasa_summary.csv
       hash: md5
-      md5: 6b2953188e1bb3eeb3866715edc026d3
+      md5: 65e4e2a4a24f5697ec7180277116ee09
       size: 817
   featurize:
     cmd: python -m solarwind.features.build
@@ -127,8 +127,8 @@ stages:
       nfiles: 2
     - path: src/solarwind/config
       hash: md5
-      md5: 271ef21f3ab5243493d8f326cdc5f112.dir
-      size: 20086
+      md5: bfaf5288ce9f2956a525171f9c42d6df.dir
+      size: 20088
       nfiles: 6
     - path: src/solarwind/data/full_series.py
       hash: md5
