@@ -5,7 +5,9 @@ import re
 import pandas as pd
 
 from solarwind.config import Settings
+from solarwind.data.capacity import OUT_NAME as CAPACITY_NAME
 from solarwind.data.cea.build_daily import FAILURES_NAME, FLAGS_NAME, OUT_NAME
+from solarwind.data.full_series import OUT_NAME as FULL_NAME
 
 FLAG_LINE = re.compile(r"^(\d{4}-\d{2}-\d{2}) \d{2}:\d{2}:\d{2} (.+)$")
 
@@ -13,6 +15,16 @@ FLAG_LINE = re.compile(r"^(\d{4}-\d{2}-\d{2}) \d{2}:\d{2}:\d{2} (.+)$")
 def load_daily(settings: Settings) -> pd.DataFrame:
     """Daily Karnataka wind and solar (MU), one row per usable CEA report."""
     return pd.read_csv(settings.processed_dir / OUT_NAME, parse_dates=["date"])
+
+
+def load_daily_full(settings: Settings) -> pd.DataFrame:
+    """Combined IDP + CEA daily Karnataka series."""
+    return pd.read_csv(settings.processed_dir / FULL_NAME, parse_dates=["date"])
+
+
+def load_capacity(settings: Settings) -> pd.DataFrame:
+    """Monthly capacity series (month as YYYY-MM text)."""
+    return pd.read_csv(settings.processed_dir / CAPACITY_NAME)
 
 
 def load_flags(settings: Settings) -> pd.DataFrame:
