@@ -4,6 +4,7 @@ from datetime import date
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -50,6 +51,38 @@ class Settings(BaseSettings):
 
     outlier_iqr_multiplier: float = 1.5
 
+    # Time-based split (never random). NASA weather ends on nasa_end, so the test window is
+    # January to September 2026 only: it contains no October to December.
+    train_start: date = date(2024, 6, 30)
+    train_end: date = date(2025, 12, 31)
+    test_start: date = date(2026, 1, 1)
+    test_end: date = date(2026, 9, 30)
+
+    # Feature groups; each can be switched off. Windows and lags are in calendar days.
+    features_calendar: bool = True
+    features_weather_interaction: bool = True
+    features_weather_shear: bool = True
+    features_weather_rolling: bool = True
+    features_weather_lags: bool = True
+    features_target_rolling: bool = True
+    features_target_lags: bool = True
+    weather_rolling_windows: tuple[int, ...] = (3, 7)
+    weather_lag_days: tuple[int, ...] = (1,)
+    target_rolling_windows: tuple[int, ...] = (7,)
+    target_lag_days: tuple[int, ...] = (1, 7)
+    shear_height_ratio: float = 5.0
+    features_max_nan_fraction: float = 0.15
+
+    @model_validator(mode="after")
+    def _check_split(self) -> "Settings":
+        """Train and test windows must not overlap and the test window must start after train."""
+        if not self.train_start <= self.train_end < self.test_start <= self.test_end:
+            raise ValueError(
+                "split must satisfy train_start <= train_end < test_start <= test_end, got "
+                f"{self.train_start}, {self.train_end}, {self.test_start}, {self.test_end}"
+            )
+        return self
+
     @property
     def cea_excel_dir(self) -> Path:
         """Folder with the downloaded daily CEA Excel reports."""
@@ -79,6 +112,11 @@ class Settings(BaseSettings):
     def processed_dir(self) -> Path:
         """Folder for DVC-produced tables."""
         return self.data_dir / "processed"
+
+    @property
+    def features_path(self) -> Path:
+        """The model-ready feature table."""
+        return self.processed_dir / "features.csv"
 
     @property
     def sites_csv(self) -> Path:
