@@ -323,6 +323,8 @@ Data tracked by DVC (never by Git): `data/raw/cea` (`cea.dvc`), `data/raw/nasa` 
 
 `dvc repro` is clean and a second run is a no-op. `karnataka_daily.csv`, `flags.txt` and `parse_failures.txt` stayed byte-identical through the whole task. `features.csv` was deliberately rebuilt on request (old 767-row table replaced).
 
+- `baselines`: `python -m solarwind.models.run_baselines`. Deps `features.csv`, `src/solarwind/models`, `config`, `logging_setup.py`. Metrics file `reports/baselines/metrics.json`; outs `predictions.csv`, `monthly.csv`, `yearly.csv`, `README.md`, `figures/`. `reports/` is DVC-tracked, not Git. The stage plots with matplotlib, which is only in the `notebook` extra (also pinned in `requirements.txt`).
+
 The refactor into the package was checked byte for byte earlier. The relabel changed `karnataka_daily.csv`, `parse_failures.txt` and `flags.txt` (one new line) as expected; `nasa_summary.csv` did not change. `dvc repro` is a no-op on a second run; `dvc status` is clean. No MLflow was touched and no model was trained.
 
 The remote is a local folder (`C:\Users\kartik\dvc-remote-mlops`), outside the repo, and was not changed. **Teammates cannot reach it, so do not tell them to `dvc pull` until it is swapped for the shared remote (DagsHub or Google Drive) and that change is committed.** Credentials with `--local`, never committed. The shared-remote auth flow is **[UNVERIFIED]** against the installed DVC version. A fresh-clone `dvc pull` proof was skipped on request.
@@ -351,13 +353,28 @@ Dataset A source line: "CEA Daily Renewable Generation Report, CEA RE Generation
 - Push the repository and confirm the CI workflow runs (it has never run).
 
 ### Phase 1 build
-Done: exploration notebook with conclusions; capacity series, CF targets and feature table with the 2019-2026 split under DVC (section 7). Not started: baselines, models, MLflow (not touched).
+Done: exploration notebook; capacity series, CF targets and feature table with the 2019-2026 split; **baselines** (section 8.1). Not started: Ridge, Random Forest, Gradient Boosting, MLflow (not touched).
 1. Shared environment smoke test (import all tools, log a dummy MLflow run, FastAPI hello endpoint, tiny Docker image) on all four laptops and in GitHub Actions; WSL2 for Docker Desktop on Windows.
 2. Cleaning decisions from the notebook: keep the ~1% outliers (real monsoon wind peaks and cloudy days); a seasonal or residual check for suspect days such as 2026-02-17/18 solar (the global Tukey rule misses them); a `suspect` column.
-3. Baselines, each an MLflow run (SQLite backend, not the file store): persistence, day-of-year average, linear irradiance model; then Ridge, Random Forest, Gradient Boosting. Evaluate per season because the test window is January to September only.
+3. ~~Baselines~~ Done without MLflow (section 8.1). Still to do, each an MLflow run (SQLite backend, not the file store): Ridge, Random Forest, Gradient Boosting. Evaluate per season because the test window ends in September 2026.
 4. Evaluate and produce the comparison table for the presentation.
 
 Modeling plan: **time-based split** (train 2019-10-30 to 2024-12-31, test 2025-01-01 to 2026-09-30; target is capacity factor), never random; keep the Phase 1 evaluation split distinct from the Phase 3 drift simulation. Metrics: MAE, RMSE, R2, MAE as share of mean generation. MLflow logs: data version (md5 from the `.dvc` file and Git commit), features, params, metrics, predicted-vs-actual plots.
+
+### 8.1 Baseline models (`src/solarwind/models/`)
+
+Separate model per target (`solar_cf`, `wind_cf`), common `fit(train)` / `predict(df)` interface, one module each in `models/baselines/`: `persistence.py` (lag-1 CF, NaN kept), `seasonal.py` (train mean within +/- `baseline_seasonal_window_days`, default 7, of the same day of year on a 366-day circle; same-month train mean as fallback, counted), `linear.py` (OLS on one weather column; the column is the candidate with the largest |Pearson r| with the target on train only). Config is in `Settings` (`baseline_*`). Metrics: MAE, RMSE, R2, MAE as % of mean actual, bias (prediction minus actual, positive = over-prediction), n. Primary table uses the common row set (every baseline predicts); the secondary table uses each baseline's full coverage. Leakage is tested: changing test targets leaves fits, train predictions and the variable choice unchanged. Report: `reports/baselines/README.md` (generated; read numbers there, not here).
+
+Results on the current `features.csv` (common row set; 567 of 582 test rows and 1,779 of 1,805 train rows, 97.4% and 98.6%), MAE / bias on the test split:
+
+| target | persistence | seasonal average | linear |
+|---|---|---|---|
+| solar_cf | 0.0182 / +0.0002 | 0.0254 / +0.0148 | 0.0215 / +0.0148 |
+| wind_cf | 0.0328 / +0.0005 | 0.0541 / +0.0025 | 0.0390 / +0.0215 |
+
+Linear variable choice (train |r|): solar `solar_ALLSKY_SFC_SW_DWN` (0.8209); wind `wind_WS10M` (0.9225) over `wind_WS50M` (0.8951). Seasonal fallback rows: 0 in train and test for both targets. Persistence is the hardest baseline to beat at one day ahead, which is why it must stay in the comparison.
+
+**Interpolated-capacity window.** The whole test split (2025-01 to 2026-09) lies in the interpolated part of the capacity series. Solar bias for the fitted baselines turns positive there (linear +0.0232 in 2026 against about 0 before 2025; Mar to Jun 2026 monthly bias +0.03 to +0.04), and wind bias for the linear baseline is +0.0252 in 2025. Persistence stays unbiased because it uses yesterday's CF, so it does not depend on the capacity level. Over-prediction by models fit on 2019-2024 is what a capacity overstated by the straight line would produce, but the pattern is not clean: the error peaks in Mar to Jun 2026 and shrinks again near the 2026-09-30 snapshot, and 2026-02-17/18 solar days are known-suspect. The data cannot separate an interpolation error from real change (curtailment, outages, rooftop growth).
 
 ### Phase 2 and 3 (later)
 PyTest model tests and physical-limit checks, MLflow registry with champion/challenger aliases, FastAPI service with pydantic validation, Docker, GitHub Actions CI/CD, deployment, Evidently drift monitoring, Prometheus/Grafana or Power BI, simulated production data, retraining trigger, model card, final report and demo, Streamlit front end, optional 2D/3D visuals. NASA latency (about 2 to 3 days meteorological, 5 to 7 days solar) means serving uses typical-year or recent-average weather; the R4 fallback should read "cached climatology".
