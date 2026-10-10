@@ -1,0 +1,6 @@
+outs:
+- md5: 522d61b3b96d5deba7da508a22cdab1d.dir
+  size: 333687
+  nfiles: 4
+  hash: md5
+  path: nasa

@@ -10,8 +10,8 @@ stages:
       nfiles: 783
     - path: src/cea_build_daily.py
       hash: md5
-      md5: 0f22dd0d22dc3a0e1b9952d3528719c2
-      size: 2025
+      md5: 701f18c808a6485d0a21aae46739a3ef
+      size: 2194
     - path: src/cea_parse.py
       hash: md5
       md5: ef816db9e44940968e69605a9b1a3e1f
@@ -29,3 +29,28 @@ stages:
       hash: md5
       md5: 574e8cb3b21af63d1c9113cde102b2d0
       size: 215
+  validate_nasa:
+    cmd: python src/nasa_summary.py
+    deps:
+    - path: config/sites.csv
+      hash: md5
+      md5: 63dfd60c00086ebe48518024502b7423
+      size: 670
+    - path: data/raw/nasa
+      hash: md5
+      md5: 522d61b3b96d5deba7da508a22cdab1d.dir
+      size: 333687
+      nfiles: 4
+    - path: src/nasa_download.py
+      hash: md5
+      md5: 287dcae78414919d4da6a47659de3eb9
+      size: 4739
+    - path: src/nasa_summary.py
+      hash: md5
+      md5: ee524a7dfab47cb46654622c3dfdf6eb
+      size: 2420
+    outs:
+    - path: data/processed/nasa_summary.csv
+      hash: md5
+      md5: 3e15937a9430d7dc4b440609e60ebc9e
+      size: 490

@@ -9,3 +9,13 @@ stages:
       - data/processed/karnataka_daily.csv
       - data/processed/flags.txt
       - data/processed/parse_failures.txt
+
+  validate_nasa:
+    cmd: python src/nasa_summary.py
+    deps:
+      - data/raw/nasa
+      - config/sites.csv
+      - src/nasa_download.py
+      - src/nasa_summary.py
+    outs:
+      - data/processed/nasa_summary.csv
