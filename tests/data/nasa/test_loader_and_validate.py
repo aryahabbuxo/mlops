@@ -9,7 +9,7 @@ SITE = make_site()
 
 
 def test_expected_rows_matches_the_planned_range():
-    assert SETTINGS.nasa_expected_rows == 2465
+    assert SETTINGS.nasa_expected_rows == 2528
 
 
 def test_validate_accepts_a_complete_file():

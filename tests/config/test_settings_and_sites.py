@@ -16,7 +16,7 @@ def write_sites(tmp_path: Path, body: str, comment: str = "# comment line\n") ->
 
 
 def test_expected_rows_follow_the_configured_window():
-    assert Settings().nasa_expected_rows == 2465
+    assert Settings().nasa_expected_rows == 2528
     short = Settings(nasa_start=date(2020, 1, 1), nasa_end=date(2020, 1, 10))
     assert short.nasa_expected_rows == 10
 

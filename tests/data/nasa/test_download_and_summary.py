@@ -61,7 +61,7 @@ def test_summarise_site_reads_values_from_the_file(tmp_path):
     assert info["rows"] == settings.nasa_expected_rows == len(df)
     assert info["elevation_m"] == 617.04
     assert info["missing_ALLSKY_SFC_SW_DWN"] == 1
-    assert info["first_date"] == "2020-01-01" and info["last_date"] == "2026-09-30"
+    assert info["first_date"] == "2019-10-30" and info["last_date"] == "2026-09-30"
 
 
 def test_summarise_site_fails_when_the_file_is_missing(tmp_path):

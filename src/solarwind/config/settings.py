@@ -47,7 +47,7 @@ class Settings(BaseSettings):
         "&community=re&parameters={params}&format=csv"
     )
     nasa_parameters: tuple[str, ...] = ("ALLSKY_SFC_SW_DWN", "T2M", "WS10M", "WS50M")
-    nasa_start: date = date(2020, 1, 1)
+    nasa_start: date = date(2019, 10, 30)
     nasa_end: date = date(2026, 9, 30)
     nasa_missing_value: int = -999
     nasa_coord_tolerance: float = 0.01
