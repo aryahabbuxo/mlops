@@ -1,0 +1,15 @@
+# Karnataka installed capacity (MW) read from MNRE state-wise PDFs; see docs/capacity_anchors_2019_2024.md.
+# kind: annual_anchor = MNRE table as on 31 March; monthly_snapshot = MNRE state-wise PDF probed in HANDOFF 5.5.
+# solar_ground_mw and solar_hybrid_mw give the series basis (ground + hybrid). Blank = not printed in that table.
+# 2019-2023 tables have no hybrid column (treated as 0). The 2023 table prints only the solar total.
+as_on,kind,wind_mw,solar_ground_mw,solar_hybrid_mw,solar_rooftop_mw,solar_offgrid_mw,solar_total_mw
+2019-03-31,annual_anchor,4694.90,5936.06,,159.50,25.20,6120.76
+2020-03-31,annual_anchor,4790.60,7045.16,,232.77,28.25,7306.18
+2021-03-31,annual_anchor,4938.60,7091.75,,263.42,28.71,7383.88
+2022-03-31,annual_anchor,5130.90,7213.26,,347.24,30.31,7590.81
+2023-03-31,annual_anchor,5294.95,,,,,8241.40
+2024-03-31,annual_anchor,6019.61,7920.47,0.00,593.90,30.31,8544.68
+2024-06-30,monthly_snapshot,6469.61,8189.36,0.00,593.90,36.51,8819.77
+2024-09-30,monthly_snapshot,6564.36,8261.33,0.00,632.13,36.64,8930.10
+2024-11-30,monthly_snapshot,6724.37,8288.78,0.00,648.50,38.37,8975.65
+2026-09-30,monthly_snapshot,8973.74,10584.53,586.75,945.10,231.65,12348.02

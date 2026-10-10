@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     # IDP supplies dates before this day; the CEA parse supplies this day and later.
     full_series_seam: date = date(2024, 6, 30)
 
+    capacity_first_month: str = "2019-10"
+    capacity_last_month: str = "2026-09"
+
     nasa_url_template: str = (
         "https://power.larc.nasa.gov/api/temporal/daily/point"
         "?start={start}&end={end}&latitude={lat}&longitude={lon}"
@@ -102,6 +105,16 @@ class Settings(BaseSettings):
     def cea_log_dir(self) -> Path:
         """Folder where the CEA downloader writes its failure logs."""
         return self.data_dir / "raw" / "cea"
+
+    @property
+    def capacity_knots_csv(self) -> Path:
+        """Hand-entered MNRE capacity snapshots."""
+        return self.config_dir / "capacity_knots.csv"
+
+    @property
+    def capacity_path(self) -> Path:
+        """The monthly capacity series written by the build_capacity stage."""
+        return self.processed_dir / "karnataka_capacity_monthly.csv"
 
     @property
     def idp_csv_path(self) -> Path:
