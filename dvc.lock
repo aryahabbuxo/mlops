@@ -10,8 +10,8 @@ stages:
       nfiles: 783
     - path: src/solarwind/config
       hash: md5
-      md5: bfaf5288ce9f2956a525171f9c42d6df.dir
-      size: 20088
+      md5: 68a0875582bddb69347f9c52a5ed361f.dir
+      size: 21255
       nfiles: 6
     - path: src/solarwind/data/cea
       hash: md5
@@ -49,8 +49,8 @@ stages:
       nfiles: 8
     - path: src/solarwind/config
       hash: md5
-      md5: bfaf5288ce9f2956a525171f9c42d6df.dir
-      size: 20088
+      md5: 68a0875582bddb69347f9c52a5ed361f.dir
+      size: 21255
       nfiles: 6
     - path: src/solarwind/data/nasa
       hash: md5
@@ -73,20 +73,32 @@ stages:
       hash: md5
       md5: a18e739ff87bc572c71b91656fd7d487
       size: 723
-    - path: data/processed/karnataka_daily.csv
+    - path: data/processed/karnataka_capacity_monthly.csv
       hash: md5
-      md5: 1a240c8cada10f23259cf0ac1640b413
-      size: 43824
+      md5: 1e4b638beab4f42d6f9e249908d32cd9
+      size: 7643
+    - path: data/processed/karnataka_daily_full.csv
+      hash: md5
+      md5: 67c2c82952b29c5eb6b9098ade1272c5
+      size: 139469
     - path: data/raw/nasa
       hash: md5
-      md5: c845a94d906c158d68319d2a18e4451c.dir
-      size: 667248
+      md5: 8d414c53fb83b7022985ddb9377effcb.dir
+      size: 684533
       nfiles: 8
     - path: src/solarwind/config
       hash: md5
-      md5: d58f72989f025fa6042c7994ccbe5a69.dir
-      size: 19018
+      md5: 68a0875582bddb69347f9c52a5ed361f.dir
+      size: 21255
       nfiles: 6
+    - path: src/solarwind/data/capacity.py
+      hash: md5
+      md5: fdcf37892afed994d967cdfe08942da6
+      size: 4701
+    - path: src/solarwind/data/full_series.py
+      hash: md5
+      md5: 6c78fd8cda1ab73f0967e1583e07b6fa
+      size: 2779
     - path: src/solarwind/data/join.py
       hash: md5
       md5: 4f28077488ebbbea235cf54be3fb7d9b
@@ -97,13 +109,13 @@ stages:
       size: 2242
     - path: src/solarwind/data/tables.py
       hash: md5
-      md5: 006a94a23355e281b68dba33e708ce21
-      size: 1442
+      md5: 367dcc31fad178f7fb5f024bf86c0566
+      size: 1937
     - path: src/solarwind/features
       hash: md5
-      md5: 6bdc6fc057bca36833fc9212ad779dad.dir
-      size: 39388
-      nfiles: 14
+      md5: 18955a8cf42e9f4f0106d77683e2974f.dir
+      size: 42955
+      nfiles: 16
     - path: src/solarwind/logging_setup.py
       hash: md5
       md5: e6740db6b15bdb563a8c9d29d700f680
@@ -111,8 +123,8 @@ stages:
     outs:
     - path: data/processed/features.csv
       hash: md5
-      md5: 38cb02ad1236480c1c3e821820704926
-      size: 494016
+      md5: 098b8e2194978a0a1fd1e63f5044a53c
+      size: 1809053
   build_full_series:
     cmd: python -m solarwind.data.full_series
     deps:
@@ -127,13 +139,13 @@ stages:
       nfiles: 2
     - path: src/solarwind/config
       hash: md5
-      md5: bfaf5288ce9f2956a525171f9c42d6df.dir
-      size: 20088
+      md5: 68a0875582bddb69347f9c52a5ed361f.dir
+      size: 21255
       nfiles: 6
     - path: src/solarwind/data/full_series.py
       hash: md5
-      md5: 2f62c74cc3cae1afcd27a73c905f16ca
-      size: 2788
+      md5: 6c78fd8cda1ab73f0967e1583e07b6fa
+      size: 2779
     - path: src/solarwind/data/idp
       hash: md5
       md5: b629b9e38f52753a88587fd108c3e31f.dir
@@ -150,8 +162,8 @@ stages:
       size: 3226
     - path: data/processed/karnataka_daily_full.csv
       hash: md5
-      md5: 4dd77daf558ed5f9015a24dc11c320c1
-      size: 139472
+      md5: 67c2c82952b29c5eb6b9098ade1272c5
+      size: 139469
   build_capacity:
     cmd: python -m solarwind.data.capacity
     deps:
@@ -161,8 +173,8 @@ stages:
       size: 1185
     - path: src/solarwind/config
       hash: md5
-      md5: 8b6006cb67c2a301e60e197ba42d688d.dir
-      size: 21248
+      md5: 68a0875582bddb69347f9c52a5ed361f.dir
+      size: 21255
       nfiles: 6
     - path: src/solarwind/data/capacity.py
       hash: md5
