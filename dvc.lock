@@ -36,7 +36,7 @@ stages:
       md5: 574e8cb3b21af63d1c9113cde102b2d0
       size: 215
   validate_nasa:
-    cmd: python src/nasa_summary.py
+    cmd: python -m solarwind.data.nasa.summary
     deps:
     - path: config/sites.csv
       hash: md5
@@ -47,14 +47,20 @@ stages:
       md5: 522d61b3b96d5deba7da508a22cdab1d.dir
       size: 333687
       nfiles: 4
-    - path: src/nasa_download.py
+    - path: src/solarwind/config
       hash: md5
-      md5: 287dcae78414919d4da6a47659de3eb9
-      size: 4739
-    - path: src/nasa_summary.py
+      md5: 0a3c5bcceeeba8bb4bab4f75e56bb0b2.dir
+      size: 14449
+      nfiles: 6
+    - path: src/solarwind/data/nasa
       hash: md5
-      md5: ee524a7dfab47cb46654622c3dfdf6eb
-      size: 2420
+      md5: 4e514b476a91c68041296309f448879f.dir
+      size: 27339
+      nfiles: 10
+    - path: src/solarwind/logging_setup.py
+      hash: md5
+      md5: e6740db6b15bdb563a8c9d29d700f680
+      size: 433
     outs:
     - path: data/processed/nasa_summary.csv
       hash: md5

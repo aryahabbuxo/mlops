@@ -12,11 +12,12 @@ stages:
       - data/processed/parse_failures.txt
 
   validate_nasa:
-    cmd: python src/nasa_summary.py
+    cmd: python -m solarwind.data.nasa.summary
     deps:
       - data/raw/nasa
       - config/sites.csv
-      - src/nasa_download.py
-      - src/nasa_summary.py
+      - src/solarwind/data/nasa
+      - src/solarwind/config
+      - src/solarwind/logging_setup.py
     outs:
       - data/processed/nasa_summary.csv
