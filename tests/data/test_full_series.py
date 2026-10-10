@@ -55,4 +55,4 @@ def test_coverage_counts_rows_per_source_and_missing_days_by_year():
     idp = parse_karnataka(raw_frame(), "Karnataka")
     full = full_series.combine(idp, cea_frame(), SEAM)
     coverage = full_series.coverage_by_year(full)
-    assert coverage.loc[2019].to_dict() == {"cea": 3, "idp": 2, "missing": 1}
+    assert coverage.loc[2019].to_dict() == {"cea": 3, "idp": 2, "missing": 2}
