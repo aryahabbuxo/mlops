@@ -54,8 +54,8 @@ stages:
       nfiles: 6
     - path: src/solarwind/data/nasa
       hash: md5
-      md5: 4e514b476a91c68041296309f448879f.dir
-      size: 27339
+      md5: aafea3bf27b05f6ae7760f8b56a5a983.dir
+      size: 27353
       nfiles: 10
     - path: src/solarwind/logging_setup.py
       hash: md5

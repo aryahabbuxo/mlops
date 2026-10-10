@@ -49,9 +49,9 @@ def parse_body(body: str) -> pd.DataFrame:
 
 
 def load_nasa_csv(path: Path, settings: Settings) -> pd.DataFrame:
-    """Load a saved file; the missing-value marker (-999) becomes NaN."""
+    """Load a saved file; the missing-value marker (-999) becomes a float NaN."""
     _, body = split_header(path.read_text())
-    return parse_body(body).replace(settings.nasa_missing_value, pd.NA)
+    return parse_body(body).replace(settings.nasa_missing_value, float("nan"))
 
 
 def missing_counts(path: Path, settings: Settings) -> dict[str, int]:
