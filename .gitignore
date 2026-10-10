@@ -4,4 +4,8 @@ __pycache__/
 *.py[cod]
 docs/
 .ipynb_checkpoints/
-.vscode/
+.vscode/*.egg-info/
+build/
+dist/
+.ruff_cache/
+.pytest_cache/
