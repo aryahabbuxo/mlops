@@ -33,8 +33,8 @@ Already in the repo (HANDOFF section 5.5): MNRE 30.06.2024 wind 6469.61, solar t
 - Solar, same KREDL table: 6134.90 MW at May 2019, consistent with MNRE 6120.76 (Mar 2019).
 - Your Dec 2019 solar anchor of about 7,275 MW was **not corroborated** by any source found. MNRE
   has 7306.18 MW on 31.03.2020, so 7,275 would mean almost no addition in Q1 2020, while straight
-  interpolation between the March 2019 and March 2020 anchors gives about 6,810 MW at 31.12.2019
-  (about 460 MW lower). If the 7,275 figure is right, interpolation understates late-2019 solar.
+  interpolation between the March 2019 and March 2020 anchors gives about 7,010 MW at 31.12.2019
+  (about 265 MW lower). If the 7,275 figure is right, interpolation understates late-2019 solar.
 - Wind, secondary table on indianwindpower.com
   (`https://indianwindpower.com/old/pdf/Year-wise-State-wise-Wind-installations-2002-to-March-2023.pdf`):
   4701.00 MW at 31.03.2020, 90 MW below MNRE (4790.60). The same family of tables
