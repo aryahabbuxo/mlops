@@ -47,7 +47,7 @@ def test_cea_only_columns_are_empty_for_idp_and_flags_carry_over():
     assert early["source_file"].isna().all() and early["wind_state_control_mu"].isna().all()
     assert late["other_renewable_mu"].isna().all() and late["total_mu"].isna().all()
     assert full["relabelled"].tolist() == [False, False, False, True, False]
-    assert full["idp_repeated_row"].tolist() == [False, True, False, False, False]
+    assert full["carry_forward"].tolist() == [False, True, False, False, False]
     assert full["relabelled"].dtype == bool
 
 

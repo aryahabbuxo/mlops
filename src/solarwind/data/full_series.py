@@ -22,7 +22,7 @@ COLUMNS = [
     "relabelled",
     "wind_state_control_mu",
     "solar_state_control_mu",
-    "idp_repeated_row",
+    "carry_forward",
 ]
 
 
@@ -36,10 +36,10 @@ def combine(idp: IdpResult, cea: pd.DataFrame, seam: date) -> pd.DataFrame:
     early["source"] = "idp"
     early["relabelled"] = False
     repeated = {pd.Timestamp(line.split()[0]) for line in idp.repeated_rows}
-    early["idp_repeated_row"] = early["date"].isin(repeated)
+    early["carry_forward"] = early["date"].isin(repeated)
     late = cea[cea["date"] >= seam_ts].copy()
     late["source"] = "cea"
-    late["idp_repeated_row"] = False
+    late["carry_forward"] = False
     full = pd.concat([early, late], ignore_index=True)
     full["relabelled"] = full["relabelled"].astype(bool)
     full = full.reindex(columns=COLUMNS).sort_values("date", ignore_index=True)
