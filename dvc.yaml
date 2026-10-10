@@ -21,3 +21,18 @@ stages:
       - src/solarwind/logging_setup.py
     outs:
       - data/processed/nasa_summary.csv
+
+  featurize:
+    cmd: python -m solarwind.features.build
+    deps:
+      - data/processed/karnataka_daily.csv
+      - data/raw/nasa
+      - config/sites.csv
+      - src/solarwind/features
+      - src/solarwind/config
+      - src/solarwind/data/join.py
+      - src/solarwind/data/tables.py
+      - src/solarwind/data/nasa/loader.py
+      - src/solarwind/logging_setup.py
+    outs:
+      - data/processed/features.csv
