@@ -1,10 +1,11 @@
 stages:
   parse_cea:
-    cmd: python src/cea_build_daily.py
+    cmd: python -m solarwind.data.cea.build_daily
     deps:
       - data/raw/cea
-      - src/cea_build_daily.py
-      - src/cea_parse.py
+      - src/solarwind/data/cea
+      - src/solarwind/config
+      - src/solarwind/logging_setup.py
     outs:
       - data/processed/karnataka_daily.csv
       - data/processed/flags.txt

@@ -1,21 +1,27 @@
 schema: '2.0'
 stages:
   parse_cea:
-    cmd: python src/cea_build_daily.py
+    cmd: python -m solarwind.data.cea.build_daily
     deps:
     - path: data/raw/cea
       hash: md5
       md5: 6f51bc2ddf8f0094457fb98a35093dcb.dir
       size: 30169184
       nfiles: 783
-    - path: src/cea_build_daily.py
+    - path: src/solarwind/config
       hash: md5
-      md5: 701f18c808a6485d0a21aae46739a3ef
-      size: 2194
-    - path: src/cea_parse.py
+      md5: 0a3c5bcceeeba8bb4bab4f75e56bb0b2.dir
+      size: 14449
+      nfiles: 6
+    - path: src/solarwind/data/cea
       hash: md5
-      md5: ef816db9e44940968e69605a9b1a3e1f
-      size: 1565
+      md5: 8af102d3c4b8ff1e5b8584de15b4708e.dir
+      size: 21380
+      nfiles: 7
+    - path: src/solarwind/logging_setup.py
+      hash: md5
+      md5: e6740db6b15bdb563a8c9d29d700f680
+      size: 433
     outs:
     - path: data/processed/flags.txt
       hash: md5
