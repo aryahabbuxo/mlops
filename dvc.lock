@@ -10,8 +10,8 @@ stages:
       nfiles: 783
     - path: src/solarwind/config
       hash: md5
-      md5: 68a0875582bddb69347f9c52a5ed361f.dir
-      size: 21255
+      md5: 881908d841ab63dfcc391d8ee6f22042.dir
+      size: 22563
       nfiles: 6
     - path: src/solarwind/data/cea
       hash: md5
@@ -49,8 +49,8 @@ stages:
       nfiles: 8
     - path: src/solarwind/config
       hash: md5
-      md5: 68a0875582bddb69347f9c52a5ed361f.dir
-      size: 21255
+      md5: 881908d841ab63dfcc391d8ee6f22042.dir
+      size: 22563
       nfiles: 6
     - path: src/solarwind/data/nasa
       hash: md5
@@ -88,8 +88,8 @@ stages:
       nfiles: 8
     - path: src/solarwind/config
       hash: md5
-      md5: 68a0875582bddb69347f9c52a5ed361f.dir
-      size: 21255
+      md5: 881908d841ab63dfcc391d8ee6f22042.dir
+      size: 22563
       nfiles: 6
     - path: src/solarwind/data/capacity.py
       hash: md5
@@ -139,8 +139,8 @@ stages:
       nfiles: 2
     - path: src/solarwind/config
       hash: md5
-      md5: 68a0875582bddb69347f9c52a5ed361f.dir
-      size: 21255
+      md5: 881908d841ab63dfcc391d8ee6f22042.dir
+      size: 22563
       nfiles: 6
     - path: src/solarwind/data/full_series.py
       hash: md5
@@ -173,8 +173,8 @@ stages:
       size: 1185
     - path: src/solarwind/config
       hash: md5
-      md5: 68a0875582bddb69347f9c52a5ed361f.dir
-      size: 21255
+      md5: 881908d841ab63dfcc391d8ee6f22042.dir
+      size: 22563
       nfiles: 6
     - path: src/solarwind/data/capacity.py
       hash: md5
@@ -189,3 +189,50 @@ stages:
       hash: md5
       md5: 1e4b638beab4f42d6f9e249908d32cd9
       size: 7643
+  baselines:
+    cmd: python -m solarwind.models.run_baselines
+    deps:
+    - path: data/processed/features.csv
+      hash: md5
+      md5: 098b8e2194978a0a1fd1e63f5044a53c
+      size: 1809053
+    - path: src/solarwind/config
+      hash: md5
+      md5: 881908d841ab63dfcc391d8ee6f22042.dir
+      size: 22563
+      nfiles: 6
+    - path: src/solarwind/logging_setup.py
+      hash: md5
+      md5: e6740db6b15bdb563a8c9d29d700f680
+      size: 433
+    - path: src/solarwind/models
+      hash: md5
+      md5: 0b6f6ab1abe0516ceec1a3140b3b2a72.dir
+      size: 58283
+      nfiles: 20
+    outs:
+    - path: reports/baselines/README.md
+      hash: md5
+      md5: b52de828de2c8a94af332de4bb1b2292
+      size: 9778
+    - path: reports/baselines/figures
+      hash: md5
+      md5: 191bf90fb350337bf790013ca481a6b3.dir
+      size: 526725
+      nfiles: 2
+    - path: reports/baselines/metrics.json
+      hash: md5
+      md5: 638d5cf76742a0072326e0e93bed9ba6
+      size: 7802
+    - path: reports/baselines/monthly.csv
+      hash: md5
+      md5: f973bf2a65f53c27d3dc793c21278307
+      size: 42141
+    - path: reports/baselines/predictions.csv
+      hash: md5
+      md5: f1fde256c9eb82bc793a4b522ad4f82f
+      size: 1157125
+    - path: reports/baselines/yearly.csv
+      hash: md5
+      md5: a52763ccefbadf3accafa0062f0c24bb
+      size: 3737

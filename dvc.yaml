@@ -62,3 +62,19 @@ stages:
       - src/solarwind/logging_setup.py
     outs:
       - data/processed/karnataka_capacity_monthly.csv
+
+  baselines:
+    cmd: python -m solarwind.models.run_baselines
+    deps:
+      - data/processed/features.csv
+      - src/solarwind/models
+      - src/solarwind/config
+      - src/solarwind/logging_setup.py
+    metrics:
+      - reports/baselines/metrics.json
+    outs:
+      - reports/baselines/predictions.csv
+      - reports/baselines/monthly.csv
+      - reports/baselines/yearly.csv
+      - reports/baselines/README.md
+      - reports/baselines/figures
