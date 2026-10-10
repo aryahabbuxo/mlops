@@ -205,7 +205,7 @@ Target = **Generation sheet Karnataka row** (`wind_mu`, `solar_mu`). Secondary c
 - Portal gaps cluster in May to Aug 2025: 2025-05-23 to 06-08, 06-30, 07-17 to 07-20, 07-22, 07-24, 07-29 to 08-21, 08-27, 08-28, 09-02, 09-30, 10-22, 10-27.
 - Processed table `data/processed/karnataka_daily.csv`: **773 rows, 58 missing days** (55 gaps plus 3 rejected files).
 - Rejected files (kept out of the table, logged in `data/processed/parse_failures.txt`):
-  - `2025-06-24.xlsx`, `2025-06-25.xlsx`: internal dates are 24-May-25 and 25-May-25 (those dates are 404 on the portal, so likely late-filed May reports). **Decision pending: relabel by B5 date or keep excluded.** The check was done: the 23 May and 26 May files do not exist, so against 2025-05-22 the daily 25 May value equals cumulative(25) - cumulative(24) exactly (wind 50.87, solar 29.12), and cumulative(24) - cumulative(22) leaves plausible values for 23 May. Relabelling would give 775 rows and 56 missing days.
+  - `2025-06-24.xlsx`, `2025-06-25.xlsx`: internal dates are 24-May-25 and 25-May-25 (those dates are 404 on the portal, so likely late-filed May reports). **Still excluded; not relabelled.** Checks on the `Generation` sheet: (a) inside May, against 2025-05-22: cum(24) - cum(22) leaves wind 51.82 and solar 41.92 for 23 May (between the neighbouring days) and cum(25) - cum(24) equals the daily 25 May values exactly (wind 50.87, solar 29.12). (b) The pre-set bracket after 25 May cannot cover 26-31 May: the first existing later file is `2025-06-09`, whose month-to-date header reads "Cumulative Generation during Jun 2025", so it restarts at 1 June. It implies a sum for 1-8 June (all missing) of wind 316.66 and solar 371.64, i.e. 39.58 and 46.45 MU/day, both non-negative. Wind is inside the 9-14 June daily range (20.24 to 51.14); solar is above it (26.75 to 43.25), so the pass criterion ("within the range of neighbouring days") was not met, and no May day after 25 May is bracketed at all. If relabelled anyway: 775 rows and 56 missing days.
   - `2025-10-14.xlsx`: different format (single sheet `Sheet1`, long table with State, State Code, Date, Wind, Solar, ...; no Generation sheet). Excluded and documented.
 - Flags (logged in `data/processed/flags.txt`, not fixed): 2024-12-19 wind Generation 6.68 < State-Wise 6.77 (caused by negative ISGS values, not a parse error). 2026-02-17 and 02-18 solar: State-Wise 0.00 and Generation about 22 vs typical about 55; treat as suspect and add a `suspect` column in the processed layer.
 - **B5 is the generation date** (no shift). Confirmed on five Grid-India PSP dates. All-India wind and solar totals (MU), PSP data day vs the CEA `Generation` All India row of the file with the same date:
@@ -220,20 +220,36 @@ Target = **Generation sheet Karnataka row** (`wind_mu`, `solar_mu`). Secondary c
 
   Each time, the same-date CEA file is the closest; neighbouring days differ by up to 38%. **Caveat: this is not independent validation.** The match is tighter than expected if CEA includes plants PSP undercounts, so CEA and PSP may share an upstream source. It confirms date alignment, not the generation values. Month-to-date step check: passed on 738 of 760 day pairs; the other 22 are probably restated cumulatives (not investigated).
 
-### 5.5 Karnataka installed capacity: candidate sources (none chosen)
-Needed for capacity factor. Findings from page reads on 10 Oct 2026; nothing was downloaded. **No source has been chosen.** Anything not opened is unverified.
+### 5.5 Karnataka installed capacity: probe of three reports (no source chosen)
+Three reports were downloaded on 10 Oct 2026 into `data/scratch/` (git-ignored, not under DVC) and read: CEA "Installed Capacity" for 2024-06 (as on 30.06.2024, 271,316 bytes, 7 pages) and 2026-08 (as on 31.08.2026, 496,727 bytes, 8 pages), and MNRE "State wise RE Installed Capacity as on 30.09.2026" (249,641 bytes, 1 page; the MNRE page labelled it 151 KB). Candidate-source list from the earlier page reads: the MNRE page `mnre.gov.in/en/physical-progress/` (monthly, latest September 2026; the Archive start month was not stated), the CEA list at `cea.nic.in/reports/dashboardView?headingId=107&subHeadingId=1003&subSubHeadingId=10014&lang=en` (119 monthly PDFs, 2014-03 to 2026-08, some months missing, Excel only for 2026-06), MNRE "Year wise Achievements" (annual, no solar split), RE-Statistics and the NITI Aayog ICED dashboard (not opened), KREDL (not opened). No source found gives monthly district-level capacity; a Lok Sabha reply has a one-off district solar table as on 31-12-2021.
 
-| Candidate | URL | Frequency, coverage | Solar split (ground / rooftop / off-grid) | District level | Scope fit with the CEA daily Generation row |
-|---|---|---|---|---|---|
-| MNRE Physical Achievements, "State wise RE Installed Capacity" PDF | `https://mnre.gov.in/en/physical-progress/` (PDF link on the page, "as on 30.09.2026", 151 KB) | Monthly (page updated 08 Oct 2026); earlier months via an "Archive" page whose start month was not stated | The page's national table splits solar into ground mounted, grid-connected rooftop, hybrid and off-grid; whether the state PDF repeats that split is **unverified** (PDF not opened) | No | **Unverified.** Solar total includes off-grid and rooftop, which the CEA daily report may not include |
-| CEA monthly "Installed Capacity" report | `https://cea.nic.in/reports/dashboardView?headingId=107&subHeadingId=1003&subSubHeadingId=10014&lang=en` | Monthly list of 119 entries, 2014-03 to 2026-08, some months missing (most of 2016, early 2017); PDF for each, Excel only for 2026-06 | **Unverified** (PDFs not opened) | **Unverified** | **Unverified**; same ministry as the daily report, but whether it gives state-level solar and wind is not confirmed |
-| MNRE "Year wise Achievements" | `https://mnre.gov.in/en/year-wise-achievement/` | Financial-year table, 2014-15 to 2026-27 (cumulative to 30.09.2026); state data only as 31 March PDFs | No (solar is one line) | No | Not monthly, not state-level in the table |
-| MNRE "RE-Statistics" (2023-24, 2024-25, 2025-26) | PDF links on the physical-progress page | Annual | **Unverified** | **Unverified** | **Unverified** |
-| NITI Aayog India Climate and Energy Dashboard | `https://iced.niti.gov.in` | Update frequency and time range not stated on the page; chart data downloadable as XLS | **Unverified** | Not mentioned | Shows state-wise potential; the installed-capacity chart text was not readable ("Source: undefined") |
-| Parliament written answers (Lok Sabha, Rajya Sabha) | e.g. a Lok Sabha reply with a district-wise Karnataka solar table as on 31-12-2021 | One-off snapshots, not monthly | Includes rooftop in that table (stated in the search summary; not opened) | Yes, for that snapshot only | Old snapshot |
-| KREDL (Karnataka state agency) | not opened | **Unverified** | **Unverified** | **Unverified** | **Unverified** |
+**CEA monthly report: Karnataka RES (MW), table "Installed capacity of power utilities in the states/UTs ... including allocated shares in joint and central sector utilities", mode-wise breakup.**
 
-Notes: the CEA reports pages at `cea.nic.in/renewable-generation-report` and several guessed CEA URLs return a login screen, so the working CEA links are the `reports/dashboardView?...` ones. No source found so far gives monthly district-level capacity, which is needed later to weight the sites. The portal's own dashboard widgets (all-India and region-wise only) cannot be filtered to Karnataka.
+| Report | State | Private | Central | Sub-total RES (MNRE) | Hydro | Renewable total (hydro + RES) |
+|---|---|---|---|---|---|---|
+| 2024-06 (30.06.2024) | 193.89 | 18283.95 | 0.00 | 18477.83 | 3631.60 | 22109.43 |
+| 2026-08 (31.08.2026) | 436.59 | 23108.01 | 640.00 | 24184.60 | 3631.60 | 27816.20 |
+
+Includes: RES = small hydro, biomass, urban and industrial waste, solar and wind, by ownership sector. **There is no Karnataka solar or wind split**: the solar/wind/bio break-up in the footnote is all-India only (its solar footnote lists ground mounted, rooftop, hybrid and off-grid/KUSUM). So the CEA monthly PDFs cannot give a per-source capacity factor.
+
+**MNRE state-wise (location based) report: Karnataka (MW) as on 30.09.2026.**
+
+| Ground mounted | RTS (incl. PM-Surya Ghar) | Hybrid solar comp. | Off-grid solar / KUSUM comp. B | Solar total | Wind | Bio-power total | Small hydro | Large hydro | Total RE |
+|---|---|---|---|---|---|---|---|---|---|
+| 10584.53 | 945.10 | 586.75 | 231.65 | 12348.02 | 8973.74 | 1917.05 | 1284.73 | 3689.20 | 28212.74 |
+
+Includes: ground mounted, rooftop (RTS), hybrid solar component, off-grid solar and PM-KUSUM, wind, biomass, waste-to-energy, small and large hydro. The solar and RE totals reconcile with the columns, and the national totals (solar 171,051.46 MW, wind 59,201.07 MW) match the physical-progress page.
+
+**Capacity factor** for September 2026 (the month matching 30.09.2026), CF = mean daily MU x 1000 / (MW x 24), using `karnataka_daily.csv` (30 days; Generation scope means: wind 39.709, solar 51.317 MU/day):
+
+| Source | Capacity used (MW) | CF | Check |
+|---|---|---|---|
+| Wind | 8973.74 | 0.184 | no range given |
+| Solar, total | 12348.02 | 0.173 | inside 0.15 to 0.25 |
+| Solar, ground mounted + hybrid | 11171.28 | 0.191 | inside |
+| Solar, ground mounted only | 10584.53 | 0.202 | inside |
+
+Sensitivity: with the state-control-only generation, CF drops to wind 0.141 and solar 0.109 (solar outside the expected range), which supports using the Generation scope as the target. CEA 2024-06 has only one daily row (30 June) in the daily table, and CEA 2026-08 has no solar or wind capacity, so no CEA capacity factor was computed. Limits: capacity is a month-end snapshot while generation is a monthly mean; the MNRE Archive (earlier months) was not probed, so a monthly capacity series is not yet available; no district-level capacity found. **No source has been chosen.** The portal dashboard widgets (all-India and region-wise) cannot be filtered to Karnataka.
 
 ---
 
@@ -278,8 +294,8 @@ The remote is a local folder (`C:\Users\kartik\dvc-remote-mlops`), outside the r
 ## 8. Remaining work
 
 ### Immediate (blocks the approval document)
-1. Decide on `2025-06-24` and `2025-06-25` (relabel to 24 and 25 May, or keep excluded). The cumulative check was done: the 23 May and 26 May files do not exist (404), so against 2025-05-22 and between the two files, cum(25) - cum(24) equals the daily 25 May values exactly (wind 50.87, solar 29.12; State-Wise 50.92 and 19.55), and cum(24) - cum(22) leaves 51.82 wind and 41.92 solar for 23 May. If relabelled: 775 rows and 56 missing days; otherwise 773 and 58.
-2. Choose a Karnataka monthly capacity source from the candidates in section 5.5 and confirm its scope against the Generation target. Nothing has been chosen or downloaded.
+1. Decide on `2025-06-24` and `2025-06-25` (relabel to 24 and 25 May, or keep excluded). They stay excluded for now: the bracket after 25 May cannot cover 26-31 May and the implied 1-8 June solar mean is above the 9-14 June range (section 5.4). The in-May checks fit. If relabelled: 775 rows and 56 missing days; otherwise 773 and 58.
+2. Choose a Karnataka monthly capacity source. Probed (section 5.5): the MNRE state-wise PDF is the only report with Karnataka solar (12348.02 MW) and wind (8973.74 MW) split, for one month (30.09.2026); the CEA monthly PDFs give combined RES only. September 2026 capacity factors are wind 0.184 and solar 0.173 (inside 0.15 to 0.25). Open: how to get earlier months (MNRE Archive not probed), whether to use total solar or exclude off-grid/rooftop, and district-level weights. Nothing chosen.
 3. Screenshots for the approval doc: portal last page is done (`docs/evidence/`); still needed: CEA licence, NASA data-use and India Data Portal licence pages. Licences are not recorded in the repo yet.
 4. Fill the approval doc fields only from files: CEA unit MU (net), range 2024-06-30 to 2026-10-08, 776 files, usable rows and missing days (after decision 1), NASA range and row counts from `nasa_summary.csv`. Mendeley end date and licence stay "to be confirmed" until the file is downloaded.
 5. Rehearse the pitch and Q&A (section 9); know the CEA date range cold.
