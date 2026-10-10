@@ -35,6 +35,12 @@ class Settings(BaseSettings):
         "2025-06-25.xlsx": date(2025, 5, 25),
     }
 
+    idp_state: str = "Karnataka"
+    idp_csv_name: str = "daily-renewable-energy-generation.csv"
+    idp_codebook_name: str = "Daily_Renewable_Energy_Generation_codebook.xlsx"
+    # IDP supplies dates before this day; the CEA parse supplies this day and later.
+    full_series_seam: date = date(2024, 6, 30)
+
     nasa_url_template: str = (
         "https://power.larc.nasa.gov/api/temporal/daily/point"
         "?start={start}&end={end}&latitude={lat}&longitude={lon}"
@@ -96,6 +102,16 @@ class Settings(BaseSettings):
     def cea_log_dir(self) -> Path:
         """Folder where the CEA downloader writes its failure logs."""
         return self.data_dir / "raw" / "cea"
+
+    @property
+    def idp_csv_path(self) -> Path:
+        """The India Data Portal daily generation CSV."""
+        return self.data_dir / "raw" / "idp" / self.idp_csv_name
+
+    @property
+    def idp_codebook_path(self) -> Path:
+        """The codebook that states the units of the IDP columns."""
+        return self.data_dir / "raw" / "idp" / self.idp_codebook_name
 
     @property
     def nasa_raw_dir(self) -> Path:
