@@ -25,12 +25,15 @@ stages:
   featurize:
     cmd: python -m solarwind.features.build
     deps:
-      - data/processed/karnataka_daily.csv
+      - data/processed/karnataka_daily_full.csv
+      - data/processed/karnataka_capacity_monthly.csv
       - data/raw/nasa
       - config/sites.csv
       - src/solarwind/features
       - src/solarwind/config
       - src/solarwind/data/join.py
+      - src/solarwind/data/capacity.py
+      - src/solarwind/data/full_series.py
       - src/solarwind/data/tables.py
       - src/solarwind/data/nasa/loader.py
       - src/solarwind/logging_setup.py
