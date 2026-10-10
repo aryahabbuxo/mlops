@@ -43,6 +43,9 @@ def missing_days(df: pd.DataFrame) -> pd.DatetimeIndex:
 def main() -> None:
     df, failures = parse_all(RAW)
     df["date"] = pd.to_datetime(df["date"])
+    duplicated = df.loc[df["date"].duplicated(), "date"]
+    if not duplicated.empty:
+        raise ValueError(f"duplicate report dates: {duplicated.dt.date.tolist()}")
     df = df.sort_values("date").reset_index(drop=True)
     OUT.parent.mkdir(parents=True, exist_ok=True)
     df.to_csv(OUT, index=False, lineterminator="\n")
