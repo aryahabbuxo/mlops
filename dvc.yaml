@@ -36,3 +36,16 @@ stages:
       - src/solarwind/logging_setup.py
     outs:
       - data/processed/features.csv
+
+  build_full_series:
+    cmd: python -m solarwind.data.full_series
+    deps:
+      - data/raw/idp
+      - data/processed/karnataka_daily.csv
+      - src/solarwind/data/full_series.py
+      - src/solarwind/data/idp
+      - src/solarwind/config
+      - src/solarwind/logging_setup.py
+    outs:
+      - data/processed/karnataka_daily_full.csv
+      - data/processed/idp_flags.txt
