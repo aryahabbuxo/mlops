@@ -33,7 +33,7 @@ def find_flags(df: pd.DataFrame) -> list[str]:
 
 
 def write_lines(path: Path, lines: list[str]) -> None:
-    path.write_text("".join(f"{line}\n" for line in lines))
+    path.write_text("".join(f"{line}\n" for line in lines), newline="\n")
 
 
 def missing_days(df: pd.DataFrame) -> pd.DatetimeIndex:
@@ -45,7 +45,7 @@ def main() -> None:
     df["date"] = pd.to_datetime(df["date"])
     df = df.sort_values("date").reset_index(drop=True)
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(OUT, index=False)
+    df.to_csv(OUT, index=False, lineterminator="\n")
     write_lines(FAILURES, failures)
     flags = find_flags(df)
     write_lines(FLAGS, flags)

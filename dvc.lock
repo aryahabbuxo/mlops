@@ -10,8 +10,8 @@ stages:
       nfiles: 783
     - path: src/cea_build_daily.py
       hash: md5
-      md5: 42e296eeab967df852c507b0c844667c
-      size: 2048
+      md5: 0f22dd0d22dc3a0e1b9952d3528719c2
+      size: 2025
     - path: src/cea_parse.py
       hash: md5
       md5: ef816db9e44940968e69605a9b1a3e1f
@@ -19,13 +19,13 @@ stages:
     outs:
     - path: data/processed/flags.txt
       hash: md5
-      md5: 66967fe17ff0532b0b116f9d0c9f9f64
-      size: 148
+      md5: e6c4280b4ce4dfb90fc9b87cd4dc1c4b
+      size: 145
     - path: data/processed/karnataka_daily.csv
       hash: md5
-      md5: b71138feb3936f4e75c25c11f372ae48
-      size: 27458
+      md5: 1cf7329ac2e3fab71db7ea2ca107a3f6
+      size: 26684
     - path: data/processed/parse_failures.txt
       hash: md5
-      md5: c97c77b45c48820d62b583717f3a0f45
-      size: 218
+      md5: 574e8cb3b21af63d1c9113cde102b2d0
+      size: 215
