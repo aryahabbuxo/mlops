@@ -25,6 +25,10 @@ dev = [
     "ruff==0.17.0",
 ]
 
+scripts = [
+    "pdfplumber==0.11.10",
+]
+
 [project.scripts]
 solarwind-cea-download = "solarwind.data.cea.download:main"
 solarwind-cea-build = "solarwind.data.cea.build_daily:main"
