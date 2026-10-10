@@ -17,7 +17,7 @@ def good_table() -> pd.DataFrame:
 
 
 def test_split_boundaries_are_inclusive_and_outside_dates_are_empty():
-    dates = pd.Series(pd.to_datetime(["2024-06-29", "2024-06-30", "2025-12-31", "2026-01-01"]))
+    dates = pd.Series(pd.to_datetime(["2019-10-29", "2019-10-30", "2024-12-31", "2025-01-01"]))
     labels = split.assign_split(dates, SETTINGS)
     assert labels.tolist()[1:] == ["train", "train", "test"]
     assert pd.isna(labels.iloc[0])
@@ -28,10 +28,10 @@ def test_split_boundaries_are_inclusive_and_outside_dates_are_empty():
 @pytest.mark.parametrize(
     "overrides",
     [
-        {"test_start": date(2025, 12, 31)},
-        {"test_start": date(2025, 6, 1)},
-        {"train_end": date(2024, 1, 1)},
-        {"test_end": date(2025, 12, 1)},
+        {"test_start": date(2024, 12, 31)},
+        {"test_start": date(2024, 6, 1)},
+        {"train_end": date(2019, 1, 1)},
+        {"test_end": date(2024, 12, 1)},
     ],
 )
 def test_settings_reject_overlapping_or_misordered_windows(overrides):
@@ -76,12 +76,12 @@ def test_nan_is_only_allowed_in_target_history_columns_up_to_the_limit():
         for p in schema.check_features(table, SETTINGS)
     )
     table = good_table()
-    table.loc[:, "wind_mu_lag1"] = float("nan")
+    table.loc[:, "wind_cf_lag1"] = float("nan")
     assert any(
-        "wind_mu_lag1" in p and "exceeds" in p for p in schema.check_features(table, SETTINGS)
+        "wind_cf_lag1" in p and "exceeds" in p for p in schema.check_features(table, SETTINGS)
     )
     table = good_table()
-    table.loc[:5, "wind_mu_lag1"] = float("nan")
+    table.loc[:5, "wind_cf_lag1"] = float("nan")
     assert schema.check_features(table, SETTINGS) == []
 
 
@@ -118,5 +118,5 @@ def test_expected_columns_follow_the_config_flags():
         features_weather_interaction=False,
     )
     columns = schema.expected_columns(off)
-    assert columns[:4] == ["date", "split", "wind_mu", "solar_mu"]
-    assert len(columns) == 4 + 8
+    assert columns[:9] == ["date", "split", *schema.TARGETS, *schema.CARRIED]
+    assert len(columns) == 9 + 8
