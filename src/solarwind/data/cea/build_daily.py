@@ -1,6 +1,8 @@
 """Build the daily Karnataka table from the downloaded CEA workbooks."""
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from zipfile import BadZipFile
 
@@ -28,12 +30,14 @@ class BuildResult:
     missing_days: pd.DatetimeIndex
 
 
-def parse_all(folder: Path) -> tuple[pd.DataFrame, list[str]]:
+def parse_all(
+    folder: Path, relabelled: Mapping[str, date] | None = None
+) -> tuple[pd.DataFrame, list[str]]:
     """Parse every workbook; files that fail an assertion are reported, not skipped silently."""
     rows, failures = [], []
     for path in sorted(folder.glob("*.xlsx")):
         try:
-            rows.append(parse_cea_xlsx(path))
+            rows.append(parse_cea_xlsx(path, relabelled))
         except PARSE_ERRORS as error:
             failures.append(f"{path.name} {type(error).__name__}: {error}")
             logger.warning("file rejected", file=path.name, error=str(error))
@@ -63,12 +67,13 @@ def write_lines(path: Path, lines: list[str]) -> None:
     path.write_text("".join(f"{line}\n" for line in lines), newline="\n")
 
 
-def build(folder: Path) -> BuildResult:
+def build(folder: Path, relabelled: Mapping[str, date] | None = None) -> BuildResult:
     """Parse the folder and derive the sorted table, flags and missing days.
 
-    Raises ValueError if two files claim the same report date.
+    Raises ValueError if two files claim the same report date (for example a relabelled
+    file colliding with a regularly named one).
     """
-    df, failures = parse_all(folder)
+    df, failures = parse_all(folder, relabelled)
     df["date"] = pd.to_datetime(df["date"])
     duplicated = df.loc[df["date"].duplicated(), "date"]
     if not duplicated.empty:
@@ -89,7 +94,7 @@ def main() -> None:
     """Command line entry point used by the parse_cea DVC stage."""
     configure_logging()
     settings = get_settings()
-    result = build(settings.cea_excel_dir)
+    result = build(settings.cea_excel_dir, settings.cea_relabelled_files)
     write_outputs(result, settings)
     table = result.table
     logger.info(

@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     cea_last_date: date = date(2026, 10, 8)
     cea_sleep_s: float = 1.0
     cea_timeout_s: float = 60.0
+    # Late-filed May 2025 reports published under June filenames. A file listed here may have a
+    # B5 date different from its filename, but only the listed date. Confirmed against Grid-India
+    # PSP data days 2025-05-24 and 2025-05-25 (within 1%, neighbouring days clearly worse).
+    cea_relabelled_files: dict[str, date] = {
+        "2025-06-24.xlsx": date(2025, 5, 24),
+        "2025-06-25.xlsx": date(2025, 5, 25),
+    }
 
     nasa_url_template: str = (
         "https://power.larc.nasa.gov/api/temporal/daily/point"

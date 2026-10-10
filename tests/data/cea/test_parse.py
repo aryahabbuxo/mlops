@@ -18,11 +18,42 @@ def test_parse_reads_both_scopes_from_a_synthetic_report(tmp_path):
     row = parse_cea_xlsx(path)
     assert row == {
         "date": date(2025, 4, 10),
+        "source_file": "2025-04-10.xlsx",
+        "relabelled": False,
         "wind_mu": 10.0,
         "solar_mu": 20.0,
         "wind_state_control_mu": 8.0,
         "solar_state_control_mu": 15.0,
     }
+
+
+LATE = {"2025-06-24.xlsx": date(2025, 5, 24)}
+
+
+def test_listed_late_filed_file_is_accepted_with_its_b5_date_and_marked(tmp_path):
+    path = write_report(tmp_path / "2025-06-24.xlsx", date(2025, 5, 24))
+    row = parse_cea_xlsx(path, LATE)
+    assert row["date"] == date(2025, 5, 24)
+    assert row["source_file"] == "2025-06-24.xlsx"
+    assert row["relabelled"] is True
+
+
+def test_listed_file_must_carry_exactly_the_listed_date(tmp_path):
+    path = write_report(tmp_path / "2025-06-24.xlsx", date(2025, 5, 23))
+    with pytest.raises(ValueError, match="does not match filename"):
+        parse_cea_xlsx(path, LATE)
+
+
+def test_unlisted_mismatch_still_fails_when_a_relabel_list_is_given(tmp_path):
+    path = write_report(tmp_path / "2025-06-26.xlsx", date(2025, 5, 24))
+    with pytest.raises(ValueError, match="does not match filename"):
+        parse_cea_xlsx(path, LATE)
+
+
+def test_without_a_relabel_list_the_late_filed_file_is_rejected(tmp_path):
+    path = write_report(tmp_path / "2025-06-24.xlsx", date(2025, 5, 24))
+    with pytest.raises(ValueError, match="does not match filename"):
+        parse_cea_xlsx(path)
 
 
 def test_sheets_are_found_by_name_not_position(tmp_path):

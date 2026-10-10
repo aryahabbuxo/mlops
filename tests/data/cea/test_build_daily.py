@@ -41,7 +41,7 @@ def test_flags_log_but_do_not_change_values():
 
 def test_duplicate_report_dates_fail_loudly(tmp_path, monkeypatch):
     rows = pd.DataFrame({"date": [date(2024, 7, 6), date(2024, 7, 6)], "wind_mu": [1.0, 2.0]})
-    monkeypatch.setattr(build_daily, "parse_all", lambda folder: (rows, []))
+    monkeypatch.setattr(build_daily, "parse_all", lambda folder, relabelled=None: (rows, []))
     with pytest.raises(ValueError, match="duplicate report dates"):
         build_daily.build(tmp_path)
 
@@ -63,3 +63,22 @@ def test_write_lines_writes_an_empty_file_for_no_lines(tmp_path):
     path = tmp_path / "flags.txt"
     build_daily.write_lines(path, [])
     assert path.read_bytes() == b""
+
+
+def test_a_relabelled_file_that_collides_with_a_regular_file_fails_the_build(tmp_path):
+    write_report(tmp_path / "2025-05-24.xlsx", date(2025, 5, 24))
+    write_report(tmp_path / "2025-06-24.xlsx", date(2025, 5, 24))
+    with pytest.raises(ValueError, match="duplicate report dates"):
+        build_daily.build(tmp_path, {"2025-06-24.xlsx": date(2025, 5, 24)})
+
+
+def test_build_marks_relabelled_rows_and_keeps_the_filename_date_missing(tmp_path):
+    write_report(tmp_path / "2025-05-22.xlsx", date(2025, 5, 22))
+    write_report(tmp_path / "2025-06-24.xlsx", date(2025, 5, 24))
+    result = build_daily.build(tmp_path, {"2025-06-24.xlsx": date(2025, 5, 24)})
+    table = result.table.set_index(result.table["date"].dt.date)
+    assert table.loc[date(2025, 5, 24), "source_file"] == "2025-06-24.xlsx"
+    assert bool(table.loc[date(2025, 5, 24), "relabelled"]) is True
+    assert bool(table.loc[date(2025, 5, 22), "relabelled"]) is False
+    assert date(2025, 6, 24) not in table.index
+    assert result.failures == []
