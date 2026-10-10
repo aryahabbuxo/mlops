@@ -2,6 +2,6 @@ venv/
 .venv/
 __pycache__/
 *.py[cod]
-docs
+docs/
 .ipynb_checkpoints/
 .vscode/
