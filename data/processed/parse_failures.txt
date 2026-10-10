@@ -1,3 +1,0 @@
-2025-06-24.xlsx ValueError: 2025-06-24.xlsx: B5 date 2025-05-24 does not match filename
-2025-06-25.xlsx ValueError: 2025-06-25.xlsx: B5 date 2025-05-25 does not match filename
-2025-10-14.xlsx KeyError: 'Generation'

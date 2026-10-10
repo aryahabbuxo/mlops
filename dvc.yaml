@@ -1,0 +1,11 @@
+stages:
+  parse_cea:
+    cmd: python src/cea_build_daily.py
+    deps:
+      - data/raw/cea
+      - src/cea_build_daily.py
+      - src/cea_parse.py
+    outs:
+      - data/processed/karnataka_daily.csv
+      - data/processed/flags.txt
+      - data/processed/parse_failures.txt

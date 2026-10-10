@@ -1,0 +1,31 @@
+schema: '2.0'
+stages:
+  parse_cea:
+    cmd: python src/cea_build_daily.py
+    deps:
+    - path: data/raw/cea
+      hash: md5
+      md5: 6f51bc2ddf8f0094457fb98a35093dcb.dir
+      size: 30169184
+      nfiles: 783
+    - path: src/cea_build_daily.py
+      hash: md5
+      md5: 42e296eeab967df852c507b0c844667c
+      size: 2048
+    - path: src/cea_parse.py
+      hash: md5
+      md5: ef816db9e44940968e69605a9b1a3e1f
+      size: 1565
+    outs:
+    - path: data/processed/flags.txt
+      hash: md5
+      md5: 66967fe17ff0532b0b116f9d0c9f9f64
+      size: 148
+    - path: data/processed/karnataka_daily.csv
+      hash: md5
+      md5: b71138feb3936f4e75c25c11f372ae48
+      size: 27458
+    - path: data/processed/parse_failures.txt
+      hash: md5
+      md5: c97c77b45c48820d62b583717f3a0f45
+      size: 218

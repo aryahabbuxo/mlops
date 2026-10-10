@@ -1,3 +1,4 @@
+import shutil
 from datetime import date
 from pathlib import Path
 
@@ -33,8 +34,12 @@ def test_filename_must_match_report_date(tmp_path):
         parse_cea_xlsx(wrong)
 
 
-def test_all_scope_is_at_least_state_control_scope():
-    df = parse_folder(DOWNLOADED)
+def test_all_scope_is_at_least_state_control_scope(tmp_path):
+    for day in range(28, 31):
+        shutil.copy(DOWNLOADED / f"2026-09-{day}.xlsx", tmp_path)
+    for day in range(1, 5):
+        shutil.copy(DOWNLOADED / f"2026-10-0{day}.xlsx", tmp_path)
+    df = parse_folder(tmp_path)
     assert len(df) == 7
     assert (df["wind_mu"] >= df["wind_state_control_mu"]).all()
     assert (df["solar_mu"] >= df["solar_state_control_mu"]).all()
