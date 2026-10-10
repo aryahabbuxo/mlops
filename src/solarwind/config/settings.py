@@ -81,6 +81,16 @@ class Settings(BaseSettings):
     shear_height_ratio: float = 5.0
     features_max_nan_fraction: float = 0.15
 
+    # Baseline models: one model per target, evaluated on the split labels below.
+    baseline_targets: tuple[str, ...] = ("solar_cf", "wind_cf")
+    baseline_seasonal_window_days: int = 7
+    baseline_linear_candidates: dict[str, tuple[str, ...]] = {
+        "solar_cf": ("solar_ALLSKY_SFC_SW_DWN",),
+        "wind_cf": ("wind_WS10M", "wind_WS50M"),
+    }
+    baseline_train_label: str = "train"
+    baseline_test_label: str = "test"
+
     @model_validator(mode="after")
     def _check_split(self) -> "Settings":
         """Train and test windows must not overlap and the test window must start after train."""
@@ -140,6 +150,11 @@ class Settings(BaseSettings):
     def features_path(self) -> Path:
         """The model-ready feature table."""
         return self.processed_dir / "features.csv"
+
+    @property
+    def baselines_dir(self) -> Path:
+        """Folder for the baseline reports (DVC outputs)."""
+        return Path("reports") / "baselines"
 
     @property
     def sites_csv(self) -> Path:
