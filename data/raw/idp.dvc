@@ -1,0 +1,6 @@
+outs:
+- md5: db7d3e6266898bbcf1cad07d1ded7c90.dir
+  size: 4406136
+  nfiles: 2
+  hash: md5
+  path: idp
