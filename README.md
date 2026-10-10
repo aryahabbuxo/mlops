@@ -72,7 +72,7 @@ simplification. Each site must be a distinct NASA grid cell, which the pipeline 
 ## Running the pipeline
 
 ```bash
-python -m dvc repro               # runs parse_cea, build_full_series, validate_nasa and featurize
+python -m dvc repro               # runs parse_cea, build_full_series, build_capacity, validate_nasa and featurize
 python -m dvc status              # "Data and pipelines are up to date" when nothing changed
 ```
 
@@ -80,8 +80,9 @@ python -m dvc status              # "Data and pipelines are up to date" when not
 |---|---|---|---|
 | `parse_cea` | `python -m solarwind.data.cea.build_daily` | `data/raw/cea` | `data/processed/karnataka_daily.csv`, `flags.txt`, `parse_failures.txt` |
 | `build_full_series` | `python -m solarwind.data.full_series` | `data/raw/idp`, `data/processed/karnataka_daily.csv` | `data/processed/karnataka_daily_full.csv`, `idp_flags.txt` |
+| `build_capacity` | `python -m solarwind.data.capacity` | `config/capacity_knots.csv` | `data/processed/karnataka_capacity_monthly.csv` |
 | `validate_nasa` | `python -m solarwind.data.nasa.summary` | `data/raw/nasa`, `config/sites.csv` | `data/processed/nasa_summary.csv` |
-| `featurize` | `python -m solarwind.features.build` | `data/processed/karnataka_daily.csv`, `data/raw/nasa`, `config/sites.csv` | `data/processed/features.csv` |
+| `featurize` | `python -m solarwind.features.build` | `data/processed/karnataka_daily_full.csv`, `karnataka_capacity_monthly.csv`, `data/raw/nasa`, `config/sites.csv` | `data/processed/features.csv` |
 
 `parse_cea` fails loudly on structural problems and lists rejected files in
 `parse_failures.txt`. `validate_nasa` fails if a site file is missing or invalid, if a file in
@@ -89,11 +90,12 @@ python -m dvc status              # "Data and pipelines are up to date" when not
 
 ## Features and the train/test split
 
-`featurize` builds `data/processed/features.csv`: one row per CEA day that has NASA weather, with a
-`split` column. The split is **time-based, never random**: train is 2024-06-30 to 2025-12-31 and
-test is 2026-01-01 to 2026-09-30 (NASA weather ends on 2026-09-30). **The test window covers
-January to September only; it contains no October to December**, so results must be read per
-season. The windows, the feature groups (calendar, weather averages, wind shear, irradiance x
+`featurize` builds `data/processed/features.csv`: one row per day that has a target and complete
+NASA weather history, with a `split` column. Targets are daily capacity factors `wind_cf` and
+`solar_cf` (MU x 1000 / (MW x 24)) from the monthly capacity series; the raw MU and capacity
+columns are kept. The split is **time-based, never random**: train is 2019-10-30 to 2024-12-31
+(first row 2019-11-05, after the weather warm-up) and test is 2025-01-01 to 2026-09-30 (NASA
+weather ends on 2026-09-30). The windows, the feature groups (calendar, weather averages, wind shear, irradiance x
 temperature, weather and target lags and rolling means) and their lags and windows are all in
 `Settings` (`src/solarwind/config/settings.py`) and can be overridden with `SOLARWIND_*`
 variables; each group can be switched off. Target lags and rolling means use past days only.
