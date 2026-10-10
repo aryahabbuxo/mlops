@@ -60,10 +60,10 @@ class Settings(BaseSettings):
     outlier_iqr_multiplier: float = 1.5
 
     # Time-based split (never random). NASA weather ends on nasa_end, so the test window is
-    # January to September 2026 only: it contains no October to December.
-    train_start: date = date(2024, 6, 30)
-    train_end: date = date(2025, 12, 31)
-    test_start: date = date(2026, 1, 1)
+    # January 2025 to September 2026: October to December appears only in 2025.
+    train_start: date = date(2019, 10, 30)
+    train_end: date = date(2024, 12, 31)
+    test_start: date = date(2025, 1, 1)
     test_end: date = date(2026, 9, 30)
 
     # Feature groups; each can be switched off. Windows and lags are in calendar days.

@@ -7,7 +7,8 @@ from solarwind.features import split
 from solarwind.features.calendar import COLUMNS as CALENDAR
 from solarwind.features.weather import base_weather_columns
 
-TARGETS = ["wind_mu", "solar_mu"]
+TARGETS = ["wind_cf", "solar_cf"]
+CARRIED = ["wind_mu", "solar_mu", "wind_capacity_mw", "solar_capacity_mw", "carry_forward"]
 DERIVED_FLAGS = (
     ("features_weather_shear", "wind_shear"),
     ("features_weather_interaction", "solar_irradiance_x_t2m"),
@@ -47,7 +48,7 @@ def target_history_columns(settings: Settings) -> list[str]:
 def expected_columns(settings: Settings) -> list[str]:
     """The exact column list, in order, that the configuration produces."""
     base = base_weather_columns(settings)
-    columns = ["date", "split", *TARGETS]
+    columns = ["date", "split", *TARGETS, *CARRIED]
     if settings.features_calendar:
         columns += CALENDAR
     columns += weather_columns(settings)

@@ -1,13 +1,14 @@
-"""Build data/processed/features.csv from the daily CEA table and NASA weather."""
+"""Build data/processed/features.csv from the full daily series, capacity and NASA weather."""
 
 import pandas as pd
 from loguru import logger
 
 from solarwind.config import Settings, Site, get_settings, load_sites
-from solarwind.data.tables import load_daily
+from solarwind.data.tables import load_capacity, load_daily_full
 from solarwind.features.calendar import calendar_features
+from solarwind.features.capacity_factor import add_capacity_factors
 from solarwind.features.lags import lagged, trailing_mean
-from solarwind.features.schema import TARGETS, expected_columns, validate_features
+from solarwind.features.schema import CARRIED, TARGETS, expected_columns, validate_features
 from solarwind.features.split import assign_split
 from solarwind.features.weather import (
     base_weather_columns,
@@ -38,9 +39,9 @@ def weather_block(weather: pd.DataFrame, settings: Settings) -> pd.DataFrame:
 
 
 def target_block(daily: pd.DataFrame, settings: Settings) -> pd.DataFrame:
-    """Targets plus their lags and trailing means (past days only) on a continuous index."""
-    days = continuous(daily[["date", *TARGETS]])
-    parts = [days[TARGETS]]
+    """Targets, carried columns, and target lags and trailing means (past days only)."""
+    days = continuous(daily[["date", *TARGETS, *CARRIED]].astype({"carry_forward": float}))
+    parts = [days[[*TARGETS, *CARRIED]]]
     if settings.features_target_lags:
         parts.append(lagged(days, TARGETS, settings.target_lag_days))
     if settings.features_target_rolling:
@@ -51,10 +52,17 @@ def target_block(daily: pd.DataFrame, settings: Settings) -> pd.DataFrame:
 
 
 def build_features(daily: pd.DataFrame, weather: pd.DataFrame, settings: Settings) -> pd.DataFrame:
-    """Assemble the feature table: one row per CEA day with weather inside a split window."""
+    """Assemble the feature table: one row per target day with complete weather in a split window.
+
+    Days at the start of the weather window lack the full rolling or lag history and are dropped.
+    """
     targets = target_block(daily, settings)
-    table = targets.join(weather_block(weather, settings), how="inner")
-    table = table.loc[table[TARGETS].notna().all(axis=1)].rename_axis("date").reset_index()
+    weather_features = weather_block(weather, settings)
+    table = targets.join(weather_features, how="inner")
+    complete = table[TARGETS].notna().all(axis=1) & table[weather_features.columns].notna().all(
+        axis=1
+    )
+    table = table.loc[complete].rename_axis("date").reset_index()
     table["split"] = assign_split(table["date"], settings)
     table = table.loc[table["split"].notna()].reset_index(drop=True)
     if settings.features_calendar:
@@ -64,7 +72,7 @@ def build_features(daily: pd.DataFrame, weather: pd.DataFrame, settings: Setting
 
 def run(settings: Settings, sites: list[Site]) -> pd.DataFrame:
     """Load inputs, build the table and pass it through the schema gate."""
-    daily = load_daily(settings)
+    daily = add_capacity_factors(load_daily_full(settings), load_capacity(settings))
     weather = load_site_averaged_weather(settings, sites)
     table = build_features(daily, weather, settings)
     validate_features(table, settings)
