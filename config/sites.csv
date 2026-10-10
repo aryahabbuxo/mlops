@@ -1,0 +1,10 @@
+# Equal-weight simplification: state weather is the plain average of the points of one
+# source type (weights sum to 1 per state and source_type). Real capacity shares are not known.
+# UNVERIFIED: kalaburagi (17.3, 76.8) and gadag (15.4, 75.6) are town-level coordinates
+# supplied by the project owner, not confirmed locations of a solar park or wind farm.
+# UNVERIFIED: pavagada (14.0145, 77.3647) and chitradurga (14.2396, 76.4521) still need a map check.
+state,source_type,site_name,lat,lon,weight
+karnataka,solar,pavagada,14.0145,77.3647,0.5
+karnataka,solar,kalaburagi,17.3,76.8,0.5
+karnataka,wind,chitradurga,14.2396,76.4521,0.5
+karnataka,wind,gadag,15.4,75.6,0.5
