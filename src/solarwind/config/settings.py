@@ -48,6 +48,8 @@ class Settings(BaseSettings):
     nasa_sleep_s: float = 2.0
     nasa_timeout_s: float = 120.0
 
+    outlier_iqr_multiplier: float = 1.5
+
     @property
     def cea_excel_dir(self) -> Path:
         """Folder with the downloaded daily CEA Excel reports."""
