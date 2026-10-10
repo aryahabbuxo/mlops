@@ -152,3 +152,28 @@ stages:
       hash: md5
       md5: 4dd77daf558ed5f9015a24dc11c320c1
       size: 139472
+  build_capacity:
+    cmd: python -m solarwind.data.capacity
+    deps:
+    - path: config/capacity_knots.csv
+      hash: md5
+      md5: c75d85a0ae11236e5e89e249a9fc3c46
+      size: 1185
+    - path: src/solarwind/config
+      hash: md5
+      md5: 8b6006cb67c2a301e60e197ba42d688d.dir
+      size: 21248
+      nfiles: 6
+    - path: src/solarwind/data/capacity.py
+      hash: md5
+      md5: fdcf37892afed994d967cdfe08942da6
+      size: 4701
+    - path: src/solarwind/logging_setup.py
+      hash: md5
+      md5: e6740db6b15bdb563a8c9d29d700f680
+      size: 433
+    outs:
+    - path: data/processed/karnataka_capacity_monthly.csv
+      hash: md5
+      md5: 1e4b638beab4f42d6f9e249908d32cd9
+      size: 7643

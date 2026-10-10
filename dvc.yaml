@@ -49,3 +49,13 @@ stages:
     outs:
       - data/processed/karnataka_daily_full.csv
       - data/processed/idp_flags.txt
+
+  build_capacity:
+    cmd: python -m solarwind.data.capacity
+    deps:
+      - config/capacity_knots.csv
+      - src/solarwind/data/capacity.py
+      - src/solarwind/config
+      - src/solarwind/logging_setup.py
+    outs:
+      - data/processed/karnataka_capacity_monthly.csv
