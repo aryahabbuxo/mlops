@@ -24,6 +24,7 @@ def write_report(
     sheet_order: tuple[str, ...] = DEFAULT_SHEETS,
     sheet_dates: dict[str, date] | None = None,
     karnataka_rows: int = 1,
+    india_values: tuple[float, float] = (100.0, 200.0),
 ) -> Path:
     """Write a workbook with the sheets, B5 date and Karnataka row the parser expects."""
     sheet_dates = sheet_dates or {}
@@ -35,12 +36,16 @@ def write_report(
             ws["A1"] = "ISGS placeholder"
             continue
         wind, solar = all_values if name == "Generation" else state_values
+        ws["A3"] = "Daily Renewable Generation Report (All India ) / title"
         ws["B5"] = report_text(sheet_dates.get(name, day))
         for row in range(7, LAST_ROW + 1):
             ws.cell(row=row, column=1, value=f"state {row}")
         ws.cell(row=KARNATAKA_ROW, column=1, value="कर्नाटक / Karnataka")
         ws.cell(row=KARNATAKA_ROW, column=2, value=wind)
         ws.cell(row=KARNATAKA_ROW, column=3, value=solar)
+        ws.cell(row=LAST_ROW, column=1, value="सम्पूर्ण भारत / All India")
+        ws.cell(row=LAST_ROW, column=2, value=india_values[0])
+        ws.cell(row=LAST_ROW, column=3, value=india_values[1])
         for extra in range(1, karnataka_rows):
             ws.cell(row=KARNATAKA_ROW + extra, column=1, value="Karnataka again")
     wb.save(path)
