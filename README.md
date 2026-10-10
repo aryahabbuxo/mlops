@@ -17,6 +17,7 @@ open items.
 | `src/solarwind/` | Installable Python package (src layout) |
 | `src/solarwind/config/` | Pydantic settings (paths, URLs, date windows) and the validated site model |
 | `src/solarwind/data/cea/` | CEA downloader, workbook parser and daily Karnataka table build |
+| `src/solarwind/data/idp/`, `full_series.py` | India Data Portal loader and the combined IDP + CEA Karnataka series |
 | `src/solarwind/data/nasa/` | NASA POWER downloader, loader, validation and per-site summary |
 | `src/solarwind/features/` | Calendar, weather, lag and rolling features, the time-based split and the schema gate |
 | `config/sites.csv` | The generation regions used to build state weather |
@@ -54,7 +55,8 @@ Raw files are not in Git. Dates below are the file modification times of the fil
 | Source | What | Coverage | Access |
 |---|---|---|---|
 | CEA Daily Renewable Generation Report, `gen-re.cea.gov.in` | State-wise daily solar and wind generation (MU, net), one Excel report per day | 2024-06-30 to 2026-10-08; 776 files downloaded on 2026-10-10 | `python -m solarwind.data.cea.download` |
-| NASA POWER, `power.larc.nasa.gov` | Daily irradiance, temperature and wind (`ALLSKY_SFC_SW_DWN`, `T2M`, `WS10M`, `WS50M`), community `re` | 2020-01-01 to 2026-09-30, one file per site, downloaded on 2026-10-10 | `python -m solarwind.data.nasa.download` |
+| India Data Portal, Daily Renewable Energy Generation (origin CEA) | State-wise daily wind and solar generation (MU), same quantity as the CEA Generation scope, covering earlier dates | 2019-10-30 to 2025-04-27 (Karnataka: 1,928 rows, 79 missing days) | files placed manually in `data/raw/idp/` (CSV and codebook) |
+| NASA POWER, `power.larc.nasa.gov` | Daily irradiance, temperature and wind (`ALLSKY_SFC_SW_DWN`, `T2M`, `WS10M`, `WS50M`), community `re` | 2019-10-30 to 2026-09-30, one file per site, downloaded on 2026-10-10 | `python -m solarwind.data.nasa.download` |
 
 Licences and terms of use for these sources are not recorded in this repository yet; confirm
 them before redistributing any raw data. Per-site NASA facts (dates, rows, missing values, file
@@ -70,13 +72,14 @@ simplification. Each site must be a distinct NASA grid cell, which the pipeline 
 ## Running the pipeline
 
 ```bash
-python -m dvc repro               # runs parse_cea, validate_nasa and featurize
+python -m dvc repro               # runs parse_cea, build_full_series, validate_nasa and featurize
 python -m dvc status              # "Data and pipelines are up to date" when nothing changed
 ```
 
 | Stage | Command | Reads | Writes |
 |---|---|---|---|
 | `parse_cea` | `python -m solarwind.data.cea.build_daily` | `data/raw/cea` | `data/processed/karnataka_daily.csv`, `flags.txt`, `parse_failures.txt` |
+| `build_full_series` | `python -m solarwind.data.full_series` | `data/raw/idp`, `data/processed/karnataka_daily.csv` | `data/processed/karnataka_daily_full.csv`, `idp_flags.txt` |
 | `validate_nasa` | `python -m solarwind.data.nasa.summary` | `data/raw/nasa`, `config/sites.csv` | `data/processed/nasa_summary.csv` |
 | `featurize` | `python -m solarwind.features.build` | `data/processed/karnataka_daily.csv`, `data/raw/nasa`, `config/sites.csv` | `data/processed/features.csv` |
 

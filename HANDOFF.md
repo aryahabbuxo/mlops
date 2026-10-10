@@ -2,7 +2,7 @@
 
 **Course:** AI252TA, Machine Learning Operations (Sem V, 2026-27), Dept. of AI and ML, RV College of Engineering
 **Team:** 4 students (team number and names still to fill)
-**Written:** 10 Oct 2026 (recreated from the pasted handoff and updated the same day)
+**Written:** 10 Oct 2026 (recreated from the pasted handoff; updated the same day for the IDP history, the NASA extension and removal of Grid-India)
 **Current stage:** Phase 1 (Development and Reproducibility). Dataset approval is the immediate milestone.
 
 Items marked **[UNVERIFIED]** come from memory or inference. Check them before they go into any submission. Never fill a number in a submission document from memory; read it from a file.
@@ -134,8 +134,8 @@ Mitigation:
 | Role | Dataset | Status |
 |---|---|---|
 | **Target** | CEA Daily Renewable Generation Report (state-wise solar and wind) | Primary. Downloaded, parsed and under DVC (section 5) |
-| **Features** | NASA POWER daily weather | Primary. 8 sites downloaded, validated and under DVC (section 4.3) |
-| **Target history** | India Data Portal daily renewable generation (CEA origin), 2019-10-30 to 2025-04-27 | Same quantity as the CEA Generation scope (section 4.4); ingestion in progress |
+| **Features** | NASA POWER daily weather | Primary. 8 sites, 2019-10-30 to 2026-09-30, downloaded, validated and under DVC (section 4.3) |
+| **Target history** | India Data Portal daily renewable generation (CEA origin), 2019-10-30 to 2025-04-27 | Same quantity as the CEA Generation scope (section 4.4). Ingested; combined with CEA in `karnataka_daily_full.csv` (section 5.6) |
 | **Needed, not sourced** | Karnataka monthly installed capacity (solar, wind); state tariffs | Open |
 
 ### 4.2 NASA POWER
@@ -148,7 +148,7 @@ Mitigation:
 ```
 https://power.larc.nasa.gov/api/temporal/daily/point?start=YYYYMMDD&end=YYYYMMDD&latitude=LAT&longitude=LON&community=re&parameters=ALLSKY_SFC_SW_DWN,T2M,WS10M,WS50M&format=csv
 ```
-- Range used: 2020-01-01 to 2026-09-30 for every site (2,465 rows). Train on dates overlapping CEA; keep later weather-only rows as production-like data for the Phase 3 drift experiment.
+- Range used: 2019-10-30 to 2026-09-30 for every site (2,528 rows; the start was moved from 2020-01-01 to match the IDP history). Train on dates overlapping CEA; keep later weather-only rows as production-like data for the Phase 3 drift experiment.
 - Loader and validation: `src/solarwind/data/nasa/` (`load_nasa_csv` turns -999 into float NaN).
 
 ### 4.3 Sites (`config/sites.csv`: state, source_type, site_name, lat, lon, weight)
@@ -158,21 +158,24 @@ Values below were read from the downloaded files (`data/processed/nasa_summary.c
 
 | Site | Source | lat, lon | MERRA-2 elevation (m) | Dates | Rows | -999 (all four columns) | Bytes |
 |---|---|---|---|---|---|---|---|
-| pavagada | solar | 14.0145, 77.3647 | 617.04 | 2020-01-01 to 2026-09-30 | 2465 | 0 | 83403 |
-| raichur | solar | 16.2, 77.35 | 370.49 | 2020-01-01 to 2026-09-30 | 2465 | 0 | 83378 |
-| kalaburagi | solar | 17.3, 76.8 | 521.17 | 2020-01-01 to 2026-09-30 | 2465 | 0 | 83325 |
-| mysuru | solar | 12.3, 76.65 | 714.58 | 2020-01-01 to 2026-09-30 | 2465 | 0 | 83352 |
-| chitradurga | wind | 14.2396, 76.4521 | 696.32 | 2020-01-01 to 2026-09-30 | 2465 | 0 | 83413 |
-| gadag | wind | 15.4, 75.6 | 608.06 | 2020-01-01 to 2026-09-30 | 2465 | 0 | 83546 |
-| koppal | wind | 15.35, 76.15 | 546.24 | 2020-01-01 to 2026-09-30 | 2465 | 0 | 83471 |
-| hassan | wind | 13.4, 76.1 | 812.04 | 2020-01-01 to 2026-09-30 | 2465 | 0 | 83360 |
+| pavagada | solar | 14.0145, 77.3647 | 617.04 | 2019-10-30 to 2026-09-30 | 2528 | 0 | 85567 |
+| raichur | solar | 16.2, 77.35 | 370.49 | 2019-10-30 to 2026-09-30 | 2528 | 0 | 85547 |
+| kalaburagi | solar | 17.3, 76.8 | 521.17 | 2019-10-30 to 2026-09-30 | 2528 | 0 | 85491 |
+| mysuru | solar | 12.3, 76.65 | 714.58 | 2019-10-30 to 2026-09-30 | 2528 | 0 | 85510 |
+| chitradurga | wind | 14.2396, 76.4521 | 696.32 | 2019-10-30 to 2026-09-30 | 2528 | 0 | 85573 |
+| gadag | wind | 15.4, 75.6 | 608.06 | 2019-10-30 to 2026-09-30 | 2528 | 0 | 85699 |
+| koppal | wind | 15.35, 76.15 | 546.24 | 2019-10-30 to 2026-09-30 | 2528 | 0 | 85629 |
+| hassan | wind | 13.4, 76.1 | 812.04 | 2019-10-30 to 2026-09-30 | 2528 | 0 | 85517 |
 
-All 28 site pairs differ on every parameter column, so the eight sites are eight distinct weather cells (Gadag and Koppal are different cells, so no move toward Ballari was needed).
+After the extension to 2019-10-30, all 28 site pairs still differ on every parameter column (re-checked on the new files, 0 NaN), so the eight sites are eight distinct weather cells (Gadag and Koppal are different cells, so no move toward Ballari was needed).
 
 Earlier two-site test: a Pavagada-area point at (14.2470, 77.4170) was identical to Pavagada in all four columns (same cell, dropped); (14.25, 77.28) shared the irradiance but not temperature or wind (not kept). The first two NASA files in the repo had swapped names (the "solar" file held the Chitradurga point and the "wind" file the Pavagada point); they were replaced by correctly named files.
 
 ### 4.4 India Data Portal (IDP) daily renewable generation
-- "Daily Renewable Energy Generation" on the India Data Portal, origin CEA (gen-re.cea.gov.in). State-level, daily, MU. Columns: `id,date,state_name,state_code,region,wind_energy,solar_energy,other_renewable_energy,total_renewable_energy`. Covers 2019-10-30 to 2025-04-27. Raw files under `data/raw/idp/` (DVC): the CSV and its codebook.
+- "Daily Renewable Energy Generation" on the India Data Portal, origin CEA (gen-re.cea.gov.in; codebook source "Ministry of Power", retrieved 2025-05-02, last updated 2025-04-27). State-level, daily, unit **Mega Unit (MU)** for all four value columns (read from the codebook). Columns: `id,date,state_name,state_code,region,wind_energy,solar_energy,other_renewable_energy,total_renewable_energy`. Raw files under `data/raw/idp/` (DVC): the CSV (67,014 rows: 1,924 All India, 1,928 Karnataka, the rest other states) and the codebook `.xlsx`.
+- Loader: `src/solarwind/data/idp/loader.py` filters Karnataka (case and space insensitive), maps `wind_energy`/`solar_energy`/`other_renewable_energy`/`total_renewable_energy` to `wind_mu`/`solar_mu`/`other_renewable_mu`/`total_mu`, and raises on a non-MU unit, nulls or negatives in wind/solar, or duplicate dates. Findings are logged, not fixed, and written to `data/processed/idp_flags.txt` (92 lines).
+- Karnataka rows: 1,928 from 2019-10-30 to 2025-04-27, **79 missing calendar days** (2019: 5, 2020: 55, 2021: 15, 2022: 4; none after 2022).
+- **Early-row quirks (flagged, not fixed):** 2019-10-30 and 2019-10-31 are identical in all four values (wind 33.66, solar 24.00, other 7.74, total 65.40), a likely carry-forward. Nine Karnataka dates in all repeat the previous row exactly: 2019-10-31, 2019-11-03, 2020-10-27, 2021-05-16, 2021-06-22, 2021-09-13, 2021-11-10, 2022-01-16, 2022-04-19. `other_renewable_mu` is negative on 2024-03-04 (-2.57) and 2024-07-25 (-5.93); wind and solar have no nulls and no negatives. The 1,924 All India rows and the other-state rows are ignored.
 
 ---
 
@@ -252,6 +255,27 @@ Solar CF is inside 0.15 to 0.25 for every full month under all three definitions
 
 ---
 
+### 5.6 Combined Karnataka series (IDP + CEA)
+
+**Scope test (gate, passed).** On every date where IDP Karnataka and `karnataka_daily.csv` overlap (302 dates, 2024-06-30 to 2025-04-27, no date missing from either side), `wind_mu` and `solar_mu` are **identical**: mean and max absolute difference 0.0000 MU (0.000%), 0 dates differ by more than 0.1 MU, 302 of 302 exact matches. IDP is therefore the same quantity as the CEA Generation scope. The match is exact, which also means the two share an upstream source: the overlap checks scope, not independent accuracy.
+
+**Output.** `data/processed/karnataka_daily_full.csv` (DVC stage `build_full_series`, `src/solarwind/data/full_series.py`): 2,401 rows, 2019-10-30 to 2026-10-08, 135 missing calendar days (the 79 IDP gaps plus the 56 CEA gaps). Seam rule: IDP for dates before 2024-06-30, the CEA parse from 2024-06-30. `karnataka_daily.csv` is unchanged. Columns: `date`, `wind_mu`, `solar_mu`, `other_renewable_mu`, `total_mu`, `source` (`idp`/`cea`), `source_file`, `relabelled`, `wind_state_control_mu`, `solar_state_control_mu`, `idp_repeated_row`. `other_renewable_mu` and `total_mu` are **null on CEA rows** (the existing parse does not read the Others and Total columns); `source_file` and the state-control columns are null on IDP rows. Output is deterministic (identical md5 on re-run).
+
+| Year | IDP rows | CEA rows | Missing days |
+|---|---|---|---|
+| 2019 | 58 | 0 | 5 |
+| 2020 | 311 | 0 | 55 |
+| 2021 | 350 | 0 | 15 |
+| 2022 | 361 | 0 | 4 |
+| 2023 | 365 | 0 | 0 |
+| 2024 | 181 | 185 | 0 |
+| 2025 | 0 | 310 | 55 |
+| 2026 | 0 | 280 | 1 |
+
+**Capacity anchors 2019 to 2024 (probe only).** MNRE state-wise tables as on 31 March give Karnataka wind and solar for every year 2019 to 2024 (wind 4694.90, 4790.60, 4938.60, 5130.90, 5294.95, 6019.61 MW; solar total 6120.76, 7306.18, 7383.88, 7590.81, 8241.40, 8544.68 MW). Full table, scope mismatches and the interpolation needs are in `docs/capacity_anchors_2019_2024.md`. Not ingested; no capacity series or CF target built. The Dec 2019 solar figure of about 7,275 MW was not corroborated.
+
+---
+
 ## 6. Repo state
 
 Installable package `solarwind` (src layout, `pyproject.toml`, `pip install -e .`):
@@ -261,9 +285,11 @@ Installable package `solarwind` (src layout, `pyproject.toml`, `pip install -e .
 | `src/solarwind/config/` | pydantic `Settings` (paths, URLs, date windows; `SOLARWIND_*` overrides) and the validated `Site` model with `load_sites()` |
 | `src/solarwind/data/cea/` | `download.py`, `parse.py` (asserts: Karnataka label present, exactly one Karnataka row, `B5` date equals the filename date and matches across sheets), `build_daily.py` |
 | `src/solarwind/data/nasa/` | `download.py`, `loader.py` (-999 becomes float NaN), `validate.py`, `summary.py` |
+| `src/solarwind/data/idp/` | `loader.py`: India Data Portal Karnataka loader (unit check, validation, findings) |
+| `src/solarwind/data/full_series.py` | `build_full_series` stage: IDP + CEA combined daily series |
 | `src/solarwind/data/tables.py`, `join.py`, `quality.py` | readers for the processed tables, the weighted NASA join, and outlier (Tukey, multiplier in `Settings`) and seasonality helpers |
 | `src/solarwind/features/` | `calendar.py`, `weather.py`, `lags.py`, `split.py`, `schema.py` (the gate), `build.py` (the `featurize` stage) |
-| `tests/` | mirrors the package; 112 tests with data, 105 pass and 7 skip when `data/` is absent (simulated fresh clone) |
+| `tests/` | mirrors the package; 114 tests pass with data present (the earlier fresh-clone skip count was not re-measured) |
 | `notebooks/01_explore.ipynb` | exploration (distributions and outliers, seasonality, correlations, conclusions; capacity sections marked blocked), committed with outputs cleared; executed export in `docs/exploration_report.html` (1.0 MB) |
 | `scripts/` | two one-off exploration scripts (not pipeline code) |
 | `config/sites.csv`, `dvc.yaml`, `dvc.lock`, `data/raw/*.dvc` | site config and DVC pipeline |
@@ -281,7 +307,10 @@ Data tracked by DVC (never by Git): `data/raw/cea` (`cea.dvc`), `data/raw/nasa` 
 `dvc.yaml` stages (commands run the package modules from the repo root):
 - `parse_cea`: `python -m solarwind.data.cea.build_daily`. Deps `data/raw/cea`, the `cea` and `config` packages, `logging_setup.py`. Outs `data/processed/karnataka_daily.csv`, `flags.txt`, `parse_failures.txt`. Uses the relabel allow-list from `Settings`.
 - `validate_nasa`: `python -m solarwind.data.nasa.summary`. Deps `data/raw/nasa`, `config/sites.csv`, the `nasa` and `config` packages, `logging_setup.py`. Out `data/processed/nasa_summary.csv`. **Fails the pipeline** if a site file is missing or invalid, if a file in `data/raw/nasa` is not listed in `sites.csv`, or if two sites share a grid cell.
+- `build_full_series`: `python -m solarwind.data.full_series`. Deps `data/raw/idp`, `data/processed/karnataka_daily.csv`, `full_series.py`, the `idp` and `config` packages, `logging_setup.py`. Outs `data/processed/karnataka_daily_full.csv` and `idp_flags.txt`.
 - `featurize`: `python -m solarwind.features.build`. Deps `data/processed/karnataka_daily.csv`, `data/raw/nasa`, `config/sites.csv`, the `features` and `config` packages, `join.py`, `tables.py`, `nasa/loader.py`, `logging_setup.py`. Out `data/processed/features.csv`: **767 rows x 48 columns, train 495 rows (2024-06-30 to 2025-12-31), test 272 rows (2026-01-01 to 2026-09-30)**. The 8 CEA days after the NASA window (2026-10-01 to 10-08) are dropped. **The test window covers January to September only, with no October to December.** Output is deterministic (identical md5 on re-run, LF endings). Columns: `date`, `split`, targets `wind_mu`, `solar_mu`; calendar `month_sin`, `month_cos`, `doy_sin`, `doy_cos`; site-averaged weather `solar_` and `wind_` x {`ALLSKY_SFC_SW_DWN`, `T2M`, `WS10M`, `WS50M`}; `wind_shear` (ln(WS50M/WS10M)/ln(5), wind sites), `solar_irradiance_x_t2m`; weather rolling means (3 and 7 days, including the current day) and 1-day weather lags; target lags (1 and 7 days) and 7-day trailing target means (past days only). No capacity or capacity-factor features. The schema gate fails the stage on missing or unexpected columns, wrong dtypes, duplicate or unsorted dates, NaN outside the target lag and rolling columns or beyond 15% in them (measured maximum 10.6%), and split-boundary violations; `Settings` rejects any train/test overlap or a test start not after the train end. Every window, lag and feature group is in `Settings` and can be switched off.
+
+**`featurize` is stale on purpose.** NASA was extended to 2019-10-30 and `config` changed, so `dvc status` lists `featurize` as changed. It was not re-run (instruction: do not rebuild `features.csv` or the split). `features.csv` is byte-identical to before (md5 `38cb02ad1236480c1c3e821820704926`). `karnataka_daily.csv`, `flags.txt` and `parse_failures.txt` were also re-checked identical after the `parse_cea` re-run; `nasa_summary.csv` changed as expected (2,528 rows per site).
 
 The refactor into the package was checked byte for byte earlier. The relabel changed `karnataka_daily.csv`, `parse_failures.txt` and `flags.txt` (one new line) as expected; `nasa_summary.csv` did not change. `dvc repro` is a no-op on a second run; `dvc status` is clean. No MLflow was touched and no model was trained.
 
@@ -293,7 +322,7 @@ The remote is a local folder (`C:\Users\kartik\dvc-remote-mlops`), outside the r
 
 ### Immediate (blocks the approval document)
 1. ~~Decide on `2025-06-24` and `2025-06-25`~~ Done: relabelled to 24 and 25 May 2025 (NASA irradiance and in-May cumulatives fit, section 5.4); 775 rows, 56 missing days.
-2. Choose a Karnataka monthly capacity source and a solar definition. Probed (section 5.5): MNRE state-wise PDFs give Karnataka solar and wind split, but only for 2024-04 to 2024-11 (archive) and 2026-09 (current page); there is no MNRE PDF for 2024-12 to 2026-08, and the rooftop, hybrid and KUSUM definitions changed over that gap. CEA monthly PDFs give combined RES only. Solar CF is 0.17 to 0.20 in every full month probed. Open: how to fill 2024-12 to 2026-08 (interpolation, other MNRE documents, or another source), total solar versus ground + hybrid, and district-level weights. Nothing chosen.
+2. Choose a Karnataka capacity source and a solar definition. **New:** MNRE 31 March anchors for 2019 to 2024 exist (`docs/capacity_anchors_2019_2024.md`), annual only, so 2019-10-30 to 2024-06-29 needs interpolation; the MNRE archive's April to June 2024 monthly PDFs could cover the quarter before the 30.06.2024 snapshot. Earlier probe notes follow. Probed (section 5.5): MNRE state-wise PDFs give Karnataka solar and wind split, but only for 2024-04 to 2024-11 (archive) and 2026-09 (current page); there is no MNRE PDF for 2024-12 to 2026-08, and the rooftop, hybrid and KUSUM definitions changed over that gap. CEA monthly PDFs give combined RES only. Solar CF is 0.17 to 0.20 in every full month probed. Open: how to fill 2024-12 to 2026-08 (interpolation, other MNRE documents, or another source), total solar versus ground + hybrid, and district-level weights. Nothing chosen.
 3. Screenshots for the approval doc: portal last page is done (`docs/evidence/`); still needed: CEA licence, NASA data-use and India Data Portal licence pages. Licences are not recorded in the repo yet.
 4. Fill the approval doc fields only from files: CEA unit MU (net), range 2024-06-30 to 2026-10-08, 776 files, 775 usable rows, 56 missing days, NASA range and row counts from `nasa_summary.csv`.
 5. Rehearse the pitch and Q&A (section 9); know the CEA date range cold.
@@ -302,6 +331,7 @@ The remote is a local folder (`C:\Users\kartik\dvc-remote-mlops`), outside the r
 Dataset A source line: "CEA Daily Renewable Generation Report, CEA RE Generation Portal (gen-re.cea.gov.in)". The India Data Portal copy (CEA origin) extends the history back to 2019-10-30. Add the multi-state pooling plan, and the note that installed capacity will be added. Coverage: CEA 2024-06-30 to 2026-10-08; NASA 2020-01-01 to 2026-09-30 at eight representative sites; weather beyond the CEA period held for drift experiments.
 
 ### Data work
+- **Open decisions on the longer series (not made):** the train/test split over 2019-10-30 to 2026-10-08 (the split in `features.csv` starts 2024-06-30 and was not touched); whether to rebuild `features.csv` on the longer series (the `featurize` stage is stale); the capacity series and capacity-factor target before 2024; treatment of the IDP carry-forward rows; whether to read Others and Total from the CEA files so `other_renewable_mu` and `total_mu` are filled after 2024-06-30.
 - State tariffs (regulator orders, e.g. KERC) as a small versioned table, or drop tariffs from risks and savings.
 - Optional: the 2026-02-19 report exists only as a PDF (Excel 404); decide whether to extract its Karnataka row by hand.
 - Add a `suspect` flag column; decide whether to drop the 2026-02-17/18 solar rows from training.
@@ -349,7 +379,7 @@ If unsure: "I'll confirm that from the file and update the document." Never gues
 
 ## 10. Unverified items (do not state as fact)
 
-NASA parameter names beyond the four used; the 4 kWh/day/kW rule of thumb; whether the ISGS park dataset covers Pavagada; whether any candidate capacity source (section 5.5) gives Karnataka monthly solar and wind in a scope matching the Generation target; DagsHub and Google Drive DVC auth flows for the installed version; cause of the 22 non-stepping cumulative pairs; whether the month picker on the CEA portal capacity card works for months other than Jun 2024; the contents of the MNRE and CEA installed-capacity PDFs (not opened).
+NASA parameter names beyond the four used; the 4 kWh/day/kW rule of thumb; whether the ISGS park dataset covers Pavagada; whether the Dec 2019 solar anchor of about 7,275 MW is right (no source found); whether any candidate capacity source (section 5.5) gives Karnataka monthly solar and wind in a scope matching the Generation target; DagsHub and Google Drive DVC auth flows for the installed version; cause of the 22 non-stepping cumulative pairs; whether the month picker on the CEA portal capacity card works for months other than Jun 2024; the contents of the MNRE and CEA installed-capacity PDFs (not opened).
 
 ---
 
