@@ -8,10 +8,10 @@ Run from the repository root with: python -m solarwind.training.register
 
 from __future__ import annotations
 
-import pandas as pd
 import mlflow
-from mlflow import MlflowClient
+import pandas as pd
 from loguru import logger
+from mlflow import MlflowClient
 
 from solarwind.training.config import get_train_settings
 
