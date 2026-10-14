@@ -33,6 +33,10 @@ notebook = [
 scripts = [
     "pdfplumber==0.11.10",
 ]
+train = [
+    "mlflow==3.17.1",
+    "scikit-learn==1.7.1",
+]
 
 [project.scripts]
 solarwind-cea-download = "solarwind.data.cea.download:main"

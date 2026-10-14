@@ -236,3 +236,56 @@ stages:
       hash: md5
       md5: a52763ccefbadf3accafa0062f0c24bb
       size: 3737
+  train:
+    cmd: python -m solarwind.training.run
+    deps:
+    - path: data/processed/features.csv
+      hash: md5
+      md5: 098b8e2194978a0a1fd1e63f5044a53c
+      size: 1809053
+    - path: src/solarwind/config
+      hash: md5
+      md5: 881908d841ab63dfcc391d8ee6f22042.dir
+      size: 22563
+      nfiles: 6
+    - path: src/solarwind/features
+      hash: md5
+      md5: 18955a8cf42e9f4f0106d77683e2974f.dir
+      size: 42955
+      nfiles: 16
+    - path: src/solarwind/logging_setup.py
+      hash: md5
+      md5: e6740db6b15bdb563a8c9d29d700f680
+      size: 433
+    - path: src/solarwind/models
+      hash: md5
+      md5: 0b6f6ab1abe0516ceec1a3140b3b2a72.dir
+      size: 58283
+      nfiles: 20
+    - path: src/solarwind/training
+      hash: md5
+      md5: 7af9997ca19b9b0dda1f48b383a9f039.dir
+      size: 48199
+      nfiles: 12
+    outs:
+    - path: reports/models/README.md
+      hash: md5
+      md5: 638642b018e37dd2441d57dc971a0e91
+      size: 3063
+    - path: reports/models/comparison.csv
+      hash: md5
+      md5: 30536d0e3dcf2f507ea5721aacd67dd4
+      size: 2801
+    - path: reports/models/figures
+      hash: md5
+      md5: f93cd89f6e1853540b8e62947d4ec7fd.dir
+      size: 303828
+      nfiles: 1
+    - path: reports/models/metrics.json
+      hash: md5
+      md5: 4aff7e186bdc4432f7b438337fe47f71
+      size: 9223
+    - path: reports/models/predictions.csv
+      hash: md5
+      md5: e059c7c0a385ee23a4151ab11f79911f
+      size: 3720194

@@ -1,4 +1,8 @@
 [core]
-    remote = localstore
+    remote = dagshub
 ['remote "localstore"']
     url = C:\Users\kartik\dvc-remote-mlops
+['remote "storage"']
+    url = gdrive://1bnlEU2VkyJ1DwHhH2ThYujZtDoX9QA2e
+['remote "dagshub"']
+    url = https://dagshub.com/ariehabbu2006/mlops.dvc

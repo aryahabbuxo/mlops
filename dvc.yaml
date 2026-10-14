@@ -78,3 +78,35 @@ stages:
       - reports/baselines/yearly.csv
       - reports/baselines/README.md
       - reports/baselines/figures
+
+  train:
+    cmd: python -m solarwind.training.run
+    deps:
+      - data/processed/features.csv
+      - src/solarwind/training
+      - src/solarwind/models
+      - src/solarwind/features
+      - src/solarwind/config
+      - src/solarwind/logging_setup.py
+    metrics:
+      - reports/models/metrics.json
+    outs:
+      - reports/models/comparison.csv
+      - reports/models/predictions.csv
+      - reports/models/README.md
+      - reports/models/figures
+
+  report_features_models:
+    cmd: python -m solarwind.reporting.features_models
+    deps:
+      - data/processed/features.csv
+      - src/solarwind/reporting
+      - src/solarwind/models
+      - src/solarwind/features
+      - src/solarwind/config
+      - src/solarwind/logging_setup.py
+    outs:
+      - reports/features_models/metrics.csv
+      - reports/features_models/predictions.csv
+      - reports/features_models/report.html
+      - reports/features_models/figures
