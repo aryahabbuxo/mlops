@@ -130,7 +130,10 @@ def filter_period(
             f"unknown period {period!r}, expected 'all', 'train', 'test', or custom dates"
         )
 
-    dates = df["date"].dt.date
+    if df.empty:
+        return df.copy(), effective_start, effective_end, period_label
+
+    dates = pd.to_datetime(df["date"]).dt.date
     mask = (dates >= effective_start) & (dates <= effective_end)
     return df.loc[mask].copy(), effective_start, effective_end, period_label
 

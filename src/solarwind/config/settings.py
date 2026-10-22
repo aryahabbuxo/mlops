@@ -59,6 +59,9 @@ class Settings(BaseSettings):
 
     outlier_iqr_multiplier: float = 1.5
 
+    # Solar resource screening: analytical threshold for low-solar (overcast) days (kWh/m^2/day).
+    solar_low_threshold_kwh: float = 3.5
+
     # Time-based split (never random). NASA weather ends on nasa_end, so the test window is
     # January 2025 to September 2026: October to December appears only in 2025.
     train_start: date = date(2019, 10, 30)
@@ -155,6 +158,11 @@ class Settings(BaseSettings):
     def baselines_dir(self) -> Path:
         """Folder for the baseline reports (DVC outputs)."""
         return Path("reports") / "baselines"
+
+    @property
+    def solar_ranking_dir(self) -> Path:
+        """Folder for the solar ranking reports."""
+        return Path("reports") / "solar_ranking"
 
     @property
     def sites_csv(self) -> Path:
