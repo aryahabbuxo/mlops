@@ -7,7 +7,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from solarwind.config import Settings, Site
+from nasa_fixtures import make_text
+from solarwind.config import Settings, Site, load_sites
 from solarwind.models.wind_ranking import (
     CUT_IN_SPEED_DEFAULT,
     LocationWindMetrics,
@@ -201,6 +202,56 @@ def test_rank_locations_order_and_tie_breaking():
     assert "Rank 4" in ranked[3].rank_explanation
 
 
+def raw_wind_files_present(settings: Settings) -> bool:
+    try:
+        sites = [s for s in load_sites(settings.sites_csv) if s.source_type == "wind"]
+        return bool(sites) and all((settings.nasa_raw_dir / s.filename).exists() for s in sites)
+    except Exception:
+        return False
+
+
+needs_raw_wind = pytest.mark.skipif(
+    not raw_wind_files_present(Settings()),
+    reason="raw NASA wind files not pulled",
+)
+
+
+def make_synthetic_wind_env(tmp_path: Path) -> Settings:
+    data_dir = tmp_path / "data"
+    config_dir = tmp_path / "config"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    config_dir.mkdir(parents=True, exist_ok=True)
+    sites_csv = config_dir / "sites.csv"
+    sites_csv.write_text(
+        "state,source_type,site_name,lat,lon,weight\n"
+        "karnataka,wind,chitradurga,14.2396,76.4521,0.25\n"
+        "karnataka,wind,gadag,15.4,75.6,0.25\n"
+        "karnataka,wind,koppal,15.35,76.15,0.25\n"
+        "karnataka,wind,hassan,13.4,76.1,0.25\n"
+    )
+    settings = Settings(data_dir=data_dir, config_dir=config_dir)
+    settings.nasa_raw_dir.mkdir(parents=True, exist_ok=True)
+    shifts = {"koppal": 2.0, "gadag": 1.5, "chitradurga": 1.0, "hassan": 0.0}
+    for site in load_sites(sites_csv):
+        text = make_text(settings, site, rows=50, value_shift=shifts[site.site_name])
+        (settings.nasa_raw_dir / site.filename).write_text(text)
+    return settings
+
+
+def test_compare_and_rank_locations_synthetic(tmp_path: Path):
+    settings = make_synthetic_wind_env(tmp_path)
+    out_dir = tmp_path / "reports"
+    df, metrics = compare_and_rank_locations(settings=settings, period="all", export_dir=out_dir)
+
+    assert len(df) == 4
+    assert list(df["site_name"]) == ["koppal", "gadag", "chitradurga", "hassan"]
+    assert list(df["rank"]) == [1, 2, 3, 4]
+    assert (out_dir / "ranking.csv").is_file()
+    assert (out_dir / "metrics.json").is_file()
+    assert (out_dir / "README.md").is_file()
+
+
+@needs_raw_wind
 def test_compare_and_rank_locations_on_real_dataset():
     settings = Settings()
     df, metrics = compare_and_rank_locations(settings=settings, period="all")
@@ -220,6 +271,7 @@ def test_compare_and_rank_locations_on_real_dataset():
     assert (df["observation_count"] == settings.nasa_expected_rows).all()
 
 
+@needs_raw_wind
 def test_compare_and_rank_locations_test_period():
     settings = Settings()
     df, metrics = compare_and_rank_locations(settings=settings, period="test")
@@ -230,6 +282,7 @@ def test_compare_and_rank_locations_test_period():
     assert (df["observation_count"] == expected_days).all()
 
 
+@needs_raw_wind
 def test_export_artifacts(tmp_path: Path):
     settings = Settings()
     df, metrics = compare_and_rank_locations(settings=settings, period="all", export_dir=tmp_path)
@@ -249,6 +302,7 @@ def test_export_artifacts(tmp_path: Path):
     assert "rank_explanation" in read_back.columns
 
 
+@needs_raw_wind
 def test_get_wind_rankings_api():
     result = get_wind_rankings(period="all")
     assert isinstance(result, list)

@@ -7,7 +7,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from solarwind.config import Settings, Site
+from nasa_fixtures import make_text
+from solarwind.config import Settings, Site, load_sites
 from solarwind.models.solar_ranking import (
     LocationSolarMetrics,
     audit_solar_model_capability,
@@ -294,6 +295,59 @@ def test_rank_locations_second_and_third_tie_breakers():
     ]
 
 
+def raw_solar_files_present(settings: Settings) -> bool:
+    try:
+        sites = [s for s in load_sites(settings.sites_csv) if s.source_type == "solar"]
+        return bool(sites) and all((settings.nasa_raw_dir / s.filename).exists() for s in sites)
+    except Exception:
+        return False
+
+
+needs_raw_solar = pytest.mark.skipif(
+    not raw_solar_files_present(Settings()),
+    reason="raw NASA solar files not pulled",
+)
+
+
+def make_synthetic_solar_env(tmp_path: Path) -> Settings:
+    data_dir = tmp_path / "data"
+    config_dir = tmp_path / "config"
+    data_dir.mkdir(parents=True, exist_ok=True)
+    config_dir.mkdir(parents=True, exist_ok=True)
+    sites_csv = config_dir / "sites.csv"
+    sites_csv.write_text(
+        "state,source_type,site_name,lat,lon,weight\n"
+        "karnataka,solar,pavagada,14.0145,77.3647,0.25\n"
+        "karnataka,solar,raichur,16.2,77.35,0.25\n"
+        "karnataka,solar,kalaburagi,17.3,76.8,0.25\n"
+        "karnataka,solar,mysuru,12.3,76.65,0.25\n"
+    )
+    settings = Settings(data_dir=data_dir, config_dir=config_dir)
+    settings.nasa_raw_dir.mkdir(parents=True, exist_ok=True)
+    shifts = {"pavagada": 2.0, "raichur": 1.5, "mysuru": 1.0, "kalaburagi": 0.0}
+    for site in load_sites(sites_csv):
+        text = make_text(settings, site, rows=50, value_shift=shifts[site.site_name])
+        (settings.nasa_raw_dir / site.filename).write_text(text)
+    return settings
+
+
+def test_compare_and_rank_solar_locations_synthetic(tmp_path: Path):
+    settings = make_synthetic_solar_env(tmp_path)
+    out_dir = tmp_path / "reports"
+    df, metrics = compare_and_rank_solar_locations(
+        settings=settings, period="all", export_dir=out_dir
+    )
+
+    assert len(df) == 4
+    assert list(df["site_name"]) == ["pavagada", "raichur", "mysuru", "kalaburagi"]
+    assert list(df["rank"]) == [1, 2, 3, 4]
+    assert (out_dir / "ranking.csv").is_file()
+    assert (out_dir / "monthly_climatology.csv").is_file()
+    assert (out_dir / "metrics.json").is_file()
+    assert (out_dir / "README.md").is_file()
+
+
+@needs_raw_solar
 def test_compare_and_rank_solar_locations_real_dataset():
     settings = Settings()
     df, metrics = compare_and_rank_solar_locations(settings=settings, period="all")
@@ -315,6 +369,7 @@ def test_compare_and_rank_solar_locations_real_dataset():
     assert (df["coverage_pct"] == 100.0).all()
 
 
+@needs_raw_solar
 def test_export_solar_artifacts(tmp_path: Path):
     settings = Settings()
     df, metrics = compare_and_rank_solar_locations(
@@ -342,6 +397,7 @@ def test_export_solar_artifacts(tmp_path: Path):
     assert "Jan" in read_monthly.columns and "Dec" in read_monthly.columns
 
 
+@needs_raw_solar
 def test_get_solar_rankings_api():
     result = get_solar_rankings(period="all")
     assert isinstance(result, list)
