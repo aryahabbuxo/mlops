@@ -1,0 +1,22 @@
+device,parameter,value,unit,origin,source,note
+lamp,panel_W,6,W,published,Sun King Home 60 spec (Engineering for Change page; VeraSol-listed),
+lamp,battery_Wh,19.8,Wh,worked_out,maker battery 6000 mAh at 3.3 V,6000 mAh x 3.3 V = 19.8 Wh
+lamp,bulb_W,0.66,W,worked_out,maker claim '24 hours on a day's charge',19.8 Wh x 0.8 usable / 24 h
+lamp,hours_wanted,10,h,our_choice,assumption,evening use
+lamp,system_eff,0.75,ratio,our_choice,assumption,typical value; same as before
+lamp,charge_eff,0.85,ratio,our_choice,assumption,typical value; same as before
+lamp,depth_of_discharge,0.8,ratio,our_choice,assumption,typical value; same as before
+lamp,temp_loss,0.004,per_C,our_choice,assumption,typical value; same as before
+lamp,temp_rise,20,C,our_choice,assumption,typical value; same as before
+heater,area_m2,2.01,m2,published,Giacomini GSUN 200 gross area (Solar Keymark 078/000181; EN ISO 9806:2013),certificate lapsed 2023-04-10; used as typical collector values only
+heater,collector_eff,0.770,ratio,published,eta0 on the same Solar Keymark certificate,certificate lapsed 2023-04-10; used as typical collector values only
+heater,UL0,3.503,W/m2K,published,a1 on the same Solar Keymark certificate,certificate lapsed 2023-04-10; used as typical collector values only
+heater,UL1,0.1,W/m2K_per_m_s,our_choice,assumption,small wind effect on heat loss; the certificate has none
+heater,tank_litres,100,L,our_choice,assumption,
+heater,setpoint_C,45,C,our_choice,assumption,
+heater,T_max_C,90,C,our_choice,assumption,
+turbine,rated_kW,8.9,kW,published,Bergey Excel 10 (AWEA rating),
+turbine,rated_speed,11,m/s,published,Bergey Excel 10 (AWEA rating),
+turbine,cut_in,2.5,m/s,published,Bergey Excel 10 (AWEA rating),
+turbine,cut_out,25,m/s,our_choice,assumption,real turbine furls at 14-20 m/s; not modelled
+turbine,hub_height_m,30,m,our_choice,assumption,maker's tower range is 24-49 m

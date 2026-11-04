@@ -1,0 +1,6 @@
+planner,lamp_mae_hours,heater_mae_C,backup_days_actual,backup_precision,backup_recall,turbine_mae_kwh_day,turbine_mean_kwh_day,heater_mae_C_ratio_to_naive,turbine_mae_kwh_day_ratio_to_naive
+naive,0.0,11.34947,472,0.82857,0.06144,27.3687,46.28373,1.0,1.0
+seasonal,0.0,8.18377,472,0.50732,0.22034,18.9512,46.28373,0.72107,0.69244
+persistence,0.0,6.82341,472,0.59283,0.59534,10.53321,46.28373,0.60121,0.38486
+ridge,0.0,6.28478,472,0.62735,0.49576,10.24498,46.28373,0.55375,0.37433
+hgb,0.0,6.5814,472,0.63881,0.50212,10.72341,46.28373,0.57989,0.39181

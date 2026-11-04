@@ -1,0 +1,110 @@
+{
+  "targets": {
+    "Solar": {
+      "naive_mae": 0.98677,
+      "models": {
+        "naive": {
+          "mae": 0.98677,
+          "ratio": 1.0
+        },
+        "seasonal": {
+          "mae": 0.70934,
+          "ratio": 0.7188
+        },
+        "persistence": {
+          "mae": 0.60105,
+          "ratio": 0.6091
+        },
+        "ridge": {
+          "mae": 0.54959,
+          "ratio": 0.557
+        },
+        "hgb": {
+          "mae": 0.57511,
+          "ratio": 0.5828
+        }
+      }
+    },
+    "Wind": {
+      "naive_mae": 1.58516,
+      "models": {
+        "naive": {
+          "mae": 1.58516,
+          "ratio": 1.0
+        },
+        "seasonal": {
+          "mae": 1.15968,
+          "ratio": 0.7316
+        },
+        "persistence": {
+          "mae": 0.68656,
+          "ratio": 0.4331
+        },
+        "ridge": {
+          "mae": 0.661,
+          "ratio": 0.417
+        },
+        "hgb": {
+          "mae": 0.68827,
+          "ratio": 0.4342
+        }
+      }
+    },
+    "Turbine": {
+      "naive_mae": 27.3687,
+      "models": {
+        "naive": {
+          "mae": 27.3687,
+          "ratio": 1.0
+        },
+        "seasonal": {
+          "mae": 18.9512,
+          "ratio": 0.6924
+        },
+        "persistence": {
+          "mae": 10.53321,
+          "ratio": 0.3849
+        },
+        "ridge": {
+          "mae": 10.24498,
+          "ratio": 0.3743
+        },
+        "hgb": {
+          "mae": 10.72341,
+          "ratio": 0.3918
+        }
+      }
+    },
+    "Heater": {
+      "naive_mae": 11.34947,
+      "models": {
+        "naive": {
+          "mae": 11.34947,
+          "ratio": 1.0
+        },
+        "seasonal": {
+          "mae": 8.18377,
+          "ratio": 0.7211
+        },
+        "persistence": {
+          "mae": 6.82341,
+          "ratio": 0.6012
+        },
+        "ridge": {
+          "mae": 6.28478,
+          "ratio": 0.5538
+        },
+        "hgb": {
+          "mae": 6.5814,
+          "ratio": 0.5799
+        }
+      }
+    }
+  },
+  "dropped": {
+    "Lamp": {
+      "naive_mae": 0.0,
+      "reason": "naive MAE is 0, so a ratio to the baseline is undefined"
+    }
+  }
+}

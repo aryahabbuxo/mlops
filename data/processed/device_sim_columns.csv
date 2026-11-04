@@ -1,0 +1,21 @@
+column,unit,meaning
+date,date,calendar day
+site_label,label,anonymised site (Solar site N / Wind site N)
+site_group,category,which Karnataka site group the site belongs to (solar / wind)
+sun,kWh/m2/day,NASA POWER all-sky surface shortwave (ALLSKY_SFC_SW_DWN)
+T2M,deg C,NASA POWER air temperature at 2 m
+WS10M,m/s,NASA POWER wind speed at 10 m
+WS50M,m/s,NASA POWER wind speed at 50 m
+v_hub,m/s,wind at 30 m hub height from hub_speed()
+lamp_hours_lit,hours,simulated hours the lamp stays lit that day
+lamp_soc_end_wh,Wh,simulated battery state of charge at end of day
+lamp_fails,bool,True if hours_lit < hours_wanted (lamp spec)
+heater_t_hot_C,deg C,simulated tank temperature that day
+heater_setpoint_C,deg C,heater setpoint from spec (constant)
+heater_backup_needed,bool,True if tank temperature below setpoint
+turbine_power_kW,kW,"power at that day's hub-height wind, from power_kw()"
+turbine_kwh_day,kWh/day,daily energy from daily_energy_kwh() (Rayleigh over the mean)
+split,category,train (<=2023) / val (2024) / test (>=2025)
+month,int,calendar month 1-12
+simulated,bool,"always True: outputs are simulated, not measured"
+specs_verified,bool,devices.SPECS_VERIFIED (True once specs are sourced)

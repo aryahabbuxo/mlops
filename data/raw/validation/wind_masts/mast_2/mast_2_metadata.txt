@@ -1,0 +1,48 @@
+ Wind Monitoring Station Dataset - 2
+=======================================
+
+About the Dataset
+=================
+
+The data is provided for reference and research purposes. Users are requested to acknowledge the National Institute of Wind Energy (NIWE), Chennai, as the source of the dataset in any publications or reports derived from this information.
+
+Dataset Information
+====================
+Wind Monitoring Station Name 	Alagiyapandiyapuram-20m Mast Height
+Location 			Alagiyapandiyapuram - TN (Latitude: 8.937222° N Longitude: 77.651111° E) 
+Measurement Period 		01/01/1989-31/12/1989
+File Name 			Alagiyapandiyapuram-TN-3.xlsx
+File Type 			XLSX
+File Size 			267.19 KB 
+
+
+Attribute Description
+======================
+
+Time_stamp	: MM/DD/YYYY H:MM
+WIND_WDS_E_10_0 : Wind Direction – East – 10 m – sensor/channel 0
+WIND_WDS_E_20_1 : Wind Direction – East – 20 m – sensor/channel 1
+
+WIND_WDS_NE_10_0 : Wind Direction – Northeast – 10 m – sensor/channel 0
+WIND_WDS_NE_20_1 : Wind Direction – Northeast – 20 m – sensor/channel 1
+
+WIND_WDS_NW_10_0 : Wind Direction – Northwest – 10 m – sensor/channel 0
+WIND_WDS_NW_20_1 : Wind Direction – Northwest – 20 m – sensor/channel 1
+
+WIND_WDS_N_10_0 : Wind Direction – North – 10 m – sensor/channel 0
+WIND_WDS_N_20_1 : Wind Direction – North – 20 m – sensor/channel 1
+
+WIND_WDS_SE_10_0 : Wind Direction – Southeast – 10 m – sensor/channel 0
+WIND_WDS_SE_20_1 : Wind Direction – Southeast – 20 m – sensor/channel 1
+
+WIND_WDS_SW_10_0 : Wind Direction – Southwest – 10 m – sensor/channel 0
+WIND_WDS_SW_20_1 : Wind Direction – Southwest – 20 m – sensor/channel 1
+
+WIND_WDS_S_10_0 : Wind Direction – South – 10 m – sensor/channel 0
+WIND_WDS_S_20_1 : Wind Direction – South – 20 m – sensor/channel 1
+
+WIND_WDS_W_10_0 : Wind Direction – West – 10 m – sensor/channel 0
+WIND_WDS_W_20_1 : Wind Direction – West – 20 m – sensor/channel 1
+
+WIND_WSS_10_N_00 : Wind Speed – 10 m – North – sensor/channel 00
+WIND_WSS_20_N_01 : Wind Speed – 20 m – North – sensor/channel 01

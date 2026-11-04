@@ -55,10 +55,11 @@ addopts = ["--import-mode=importlib"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = ["src", "tests"]
+src = [".", "src", "tests"]
+extend-exclude = ["run_all.py", "one_site.py", "make_data_story.py", "make_device_story.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "N"]
 
 [tool.ruff.lint.per-file-ignores]
-"*.ipynb" = ["E501"]
+"*.ipynb" = ["E501", "UP031"]

@@ -1,0 +1,1074 @@
+{
+  "B1": {
+    "sun": {
+      "n_minus999": 0,
+      "min": 0.8402,
+      "max": 7.9642,
+      "mean": 5.2133
+    },
+    "T2M": {
+      "n_minus999": 0,
+      "min": 15.97,
+      "max": 37.58,
+      "mean": 25.5879
+    },
+    "WS10M": {
+      "n_minus999": 0,
+      "min": 0.6,
+      "max": 12.33,
+      "mean": 3.9837
+    },
+    "WS50M": {
+      "n_minus999": 0,
+      "min": 0.85,
+      "max": 15.68,
+      "mean": 5.6637
+    },
+    "total_minus999": 0
+  },
+  "B2": {
+    "sun": {
+      "high_month": 4,
+      "high_median": 6.5988,
+      "low_month": 7,
+      "low_median": 4.2342
+    },
+    "T2M": {
+      "high_month": 4,
+      "high_median": 30.795,
+      "low_month": 12,
+      "low_median": 22.1
+    },
+    "WS50M": {
+      "high_month": 7,
+      "high_median": 8.645,
+      "low_month": 4,
+      "low_median": 4.23
+    }
+  },
+  "B3": {
+    "days_per_site": 2528,
+    "date_min": "2019-10-30",
+    "date_max": "2026-09-30",
+    "train_end": "2023-12-31",
+    "val_end": "2024-12-31"
+  },
+  "B4": {
+    "lags": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14
+    ],
+    "acf_sun": [
+      0.7713,
+      0.63,
+      0.5565,
+      0.518,
+      0.5014,
+      0.4839,
+      0.4677,
+      0.4567,
+      0.4413,
+      0.4257,
+      0.4169,
+      0.4074,
+      0.4032,
+      0.3923
+    ],
+    "acf_wind": [
+      0.8853,
+      0.7644,
+      0.6707,
+      0.6109,
+      0.5644,
+      0.5251,
+      0.4938,
+      0.4673,
+      0.4448,
+      0.4288,
+      0.4094,
+      0.3937,
+      0.3814,
+      0.3716
+    ],
+    "lag1_sun": 0.7713,
+    "lag1_wind": 0.8853,
+    "anom_acf_sun": [
+      0.5977,
+      0.3487,
+      0.2181,
+      0.1474,
+      0.1167,
+      0.0866,
+      0.0573,
+      0.0387,
+      0.014,
+      -0.0096,
+      -0.0224,
+      -0.0365,
+      -0.0415,
+      -0.0559
+    ],
+    "anom_acf_wind": [
+      0.7953,
+      0.5816,
+      0.4175,
+      0.3112,
+      0.2274,
+      0.1547,
+      0.098,
+      0.055,
+      0.0216,
+      -0.0023,
+      -0.0335,
+      -0.0558,
+      -0.069,
+      -0.0745
+    ],
+    "anom_lag1_sun": 0.5977,
+    "anom_lag7_sun": 0.0573,
+    "anom_lag1_wind": 0.7953,
+    "anom_lag7_wind": 0.098
+  },
+  "B5": {
+    "by_site": {
+      "Wind site 1": {
+        "overall_share": 0.1911,
+        "by_month": [
+          0.1935,
+          0.1869,
+          0.3364,
+          0.419,
+          0.3318,
+          0.0333,
+          0.0415,
+          0.0507,
+          0.081,
+          0.383,
+          0.1333,
+          0.1244
+        ]
+      },
+      "Wind site 2": {
+        "overall_share": 0.1915,
+        "by_month": [
+          0.2304,
+          0.2222,
+          0.3456,
+          0.4714,
+          0.2442,
+          0.0238,
+          0.0369,
+          0.0369,
+          0.0857,
+          0.3298,
+          0.1286,
+          0.1613
+        ]
+      },
+      "Wind site 3": {
+        "overall_share": 0.193,
+        "by_month": [
+          0.1982,
+          0.1667,
+          0.2673,
+          0.4333,
+          0.3134,
+          0.0333,
+          0.0461,
+          0.0645,
+          0.1048,
+          0.4043,
+          0.1714,
+          0.1382
+        ]
+      },
+      "Wind site 4": {
+        "overall_share": 0.1915,
+        "by_month": [
+          0.2074,
+          0.1414,
+          0.3456,
+          0.3857,
+          0.3134,
+          0.0476,
+          0.0461,
+          0.0415,
+          0.1095,
+          0.3723,
+          0.1667,
+          0.1382
+        ]
+      }
+    },
+    "worst": {
+      "month": 4,
+      "share": 0.4714,
+      "site": "Wind site 2"
+    },
+    "avg_by_month": [
+      0.2074,
+      0.1793,
+      0.3237,
+      0.4274,
+      0.3007,
+      0.0345,
+      0.0426,
+      0.0484,
+      0.0952,
+      0.3723,
+      0.15,
+      0.1406
+    ],
+    "two_highest_months": [
+      4,
+      10
+    ],
+    "two_highest_shares": [
+      0.4274,
+      0.3723
+    ],
+    "lowest_month": 6,
+    "lowest_share": 0.0345
+  },
+  "B6": {
+    "variables": [
+      "sunlight",
+      "air temperature",
+      "wind 50 m"
+    ],
+    "levels": {
+      "sun_temp": 0.4878,
+      "sun_wind": -0.3235,
+      "temp_wind": -0.1255
+    },
+    "changes": {
+      "sun_temp": 0.1386,
+      "sun_wind": -0.0879,
+      "temp_wind": -0.1476
+    },
+    "sun_wind_level_corr_definition": "Pearson correlation of daily sunlight (kWh/m2/day) and wind at 50 m (m/s), pooled over all site-days, raw levels. This is the single definition used everywhere; value = levels.sun_wind."
+  },
+  "B7": {
+    "solar_peak_month": 4,
+    "solar_low_month": 7,
+    "wind_peak_month": 7,
+    "wind_low_month": 4
+  },
+  "B8": {
+    "sunniest_month": 4,
+    "sunniest_value": 6.4955,
+    "cloudiest_month": 7,
+    "cloudiest_value": 4.2098
+  },
+  "B9": {
+    "windiest_month": 7,
+    "windiest_value": 8.1274,
+    "calmest_month": 4,
+    "calmest_value": 3.6819
+  },
+  "B10": {
+    "Solar site 1": {
+      "runs_ge3": 84,
+      "longest": 20
+    },
+    "Solar site 2": {
+      "runs_ge3": 88,
+      "longest": 14
+    },
+    "Solar site 3": {
+      "runs_ge3": 87,
+      "longest": 15
+    },
+    "Solar site 4": {
+      "runs_ge3": 89,
+      "longest": 22
+    },
+    "measured_on": "all days (cloudy = sunlight below the site's train 25th percentile)",
+    "n_streaks": 937,
+    "longest_overall": 22,
+    "share_ge5": 0.1537,
+    "share_ge7": 0.079,
+    "share_ge10": 0.0374,
+    "p90_length": 6
+  },
+  "B11": {
+    "note": "Cloudy-streak day = part of a run of 3+ days with sunlight below the site's train 25th percentile. Wind is each site's own 50 m column (WS50M). All 8 files have sun, WS10M and WS50M, so no site lacks a needed column.",
+    "by_site": {
+      "Solar site 1": {
+        "wind_streak": 7.1291,
+        "wind_other_same_months": 6.0245,
+        "diff": 1.1046,
+        "longest_streak_len": 20,
+        "longest_streak_month": 11,
+        "streak_days_also_low_wind_share": 0.123,
+        "all_days_low_wind_share": 0.1816
+      },
+      "Solar site 2": {
+        "wind_streak": 6.89,
+        "wind_other_same_months": 5.5679,
+        "diff": 1.3221,
+        "longest_streak_len": 14,
+        "longest_streak_month": 7,
+        "streak_days_also_low_wind_share": 0.0907,
+        "all_days_low_wind_share": 0.1899
+      },
+      "Solar site 3": {
+        "wind_streak": 6.6753,
+        "wind_other_same_months": 5.4214,
+        "diff": 1.2539,
+        "longest_streak_len": 15,
+        "longest_streak_month": 6,
+        "streak_days_also_low_wind_share": 0.0841,
+        "all_days_low_wind_share": 0.1994
+      },
+      "Solar site 4": {
+        "wind_streak": 6.6464,
+        "wind_other_same_months": 5.035,
+        "diff": 1.6114,
+        "longest_streak_len": 22,
+        "longest_streak_month": 11,
+        "streak_days_also_low_wind_share": 0.081,
+        "all_days_low_wind_share": 0.195
+      },
+      "Wind site 1": {
+        "wind_streak": 7.3748,
+        "wind_other_same_months": 5.7814,
+        "diff": 1.5934,
+        "longest_streak_len": 15,
+        "longest_streak_month": 7,
+        "streak_days_also_low_wind_share": 0.1184,
+        "all_days_low_wind_share": 0.1911
+      },
+      "Wind site 2": {
+        "wind_streak": 7.5957,
+        "wind_other_same_months": 5.9389,
+        "diff": 1.6568,
+        "longest_streak_len": 14,
+        "longest_streak_month": 7,
+        "streak_days_also_low_wind_share": 0.1043,
+        "all_days_low_wind_share": 0.1915
+      },
+      "Wind site 3": {
+        "wind_streak": 7.4869,
+        "wind_other_same_months": 6.0387,
+        "diff": 1.4482,
+        "longest_streak_len": 13,
+        "longest_streak_month": 11,
+        "streak_days_also_low_wind_share": 0.1096,
+        "all_days_low_wind_share": 0.193
+      },
+      "Wind site 4": {
+        "wind_streak": 6.4664,
+        "wind_other_same_months": 5.0183,
+        "diff": 1.4481,
+        "longest_streak_len": 16,
+        "longest_streak_month": 11,
+        "streak_days_also_low_wind_share": 0.1176,
+        "all_days_low_wind_share": 0.1915
+      }
+    },
+    "longest_streak_months": {
+      "Solar site 1": 11,
+      "Solar site 2": 7,
+      "Solar site 3": 6,
+      "Solar site 4": 11,
+      "Wind site 1": 7,
+      "Wind site 2": 7,
+      "Wind site 3": 11,
+      "Wind site 4": 11
+    },
+    "longest_months_list": [
+      6,
+      7,
+      11
+    ],
+    "mean_diff_over_sites": 1.4298,
+    "mean_streak_also_lowwind": 0.1036
+  },
+  "A1": {
+    "raw_rows": 20224,
+    "minus999_to_nan": 0,
+    "after_gap_check_rows": 20224,
+    "train": 12192,
+    "val": 2928,
+    "test": 5104,
+    "rolling_window_days": 3,
+    "window_loss_per_site": 2,
+    "label_loss_per_site": 1,
+    "per_site_dropped": {
+      "Solar site 1": {
+        "raw": 2528,
+        "built": 2525,
+        "dropped": 3,
+        "window_loss": 2,
+        "label_loss": 1
+      },
+      "Solar site 2": {
+        "raw": 2528,
+        "built": 2525,
+        "dropped": 3,
+        "window_loss": 2,
+        "label_loss": 1
+      },
+      "Solar site 3": {
+        "raw": 2528,
+        "built": 2525,
+        "dropped": 3,
+        "window_loss": 2,
+        "label_loss": 1
+      },
+      "Solar site 4": {
+        "raw": 2528,
+        "built": 2525,
+        "dropped": 3,
+        "window_loss": 2,
+        "label_loss": 1
+      },
+      "Wind site 1": {
+        "raw": 2528,
+        "built": 2525,
+        "dropped": 3,
+        "window_loss": 2,
+        "label_loss": 1
+      },
+      "Wind site 2": {
+        "raw": 2528,
+        "built": 2525,
+        "dropped": 3,
+        "window_loss": 2,
+        "label_loss": 1
+      },
+      "Wind site 3": {
+        "raw": 2528,
+        "built": 2525,
+        "dropped": 3,
+        "window_loss": 2,
+        "label_loss": 1
+      },
+      "Wind site 4": {
+        "raw": 2528,
+        "built": 2525,
+        "dropped": 3,
+        "window_loss": 2,
+        "label_loss": 1
+      }
+    },
+    "total_window_loss": 16,
+    "total_label_loss": 8,
+    "total_dropped": 24,
+    "solar_built_rows": 10100,
+    "wind_built_rows": 10100,
+    "solar_rows_lost": 12,
+    "wind_rows_lost": 12
+  },
+  "A2": {
+    "missing_before": {
+      "sun": 0,
+      "T2M": 0,
+      "WS10M": 0,
+      "WS50M": 0
+    },
+    "missing_after": {
+      "sun": 0,
+      "T2M": 0,
+      "WS10M": 0,
+      "WS50M": 0
+    },
+    "rows_dropped": {
+      "solar": 12,
+      "wind": 12
+    },
+    "rolling_window_days": 3,
+    "window_loss_per_site": 2,
+    "label_loss_per_site": 1,
+    "rows_per_site_dropped": 3,
+    "total_dropped": 24
+  },
+  "A3": {
+    "sun": {
+      "train": {
+        "mean": 5.2226,
+        "std": 1.2127
+      },
+      "val": {
+        "mean": 5.1189,
+        "std": 1.2618
+      },
+      "test": {
+        "mean": 5.2453,
+        "std": 1.1874
+      }
+    },
+    "T2M": {
+      "train": {
+        "mean": 25.3104,
+        "std": 3.1955
+      },
+      "val": {
+        "mean": 26.2634,
+        "std": 3.3303
+      },
+      "test": {
+        "mean": 25.8631,
+        "std": 3.3693
+      }
+    },
+    "v_hub": {
+      "train": {
+        "mean": 4.9167,
+        "std": 1.8127
+      },
+      "val": {
+        "mean": 5.0576,
+        "std": 2.1086
+      },
+      "test": {
+        "mean": 5.4087,
+        "std": 1.9974
+      }
+    },
+    "by_split": {
+      "train": {
+        "mean_temp": 25.3104,
+        "mean_wind": 4.9167,
+        "wind_p90": 7.3329,
+        "share_wind_gt6": 0.2235
+      },
+      "val": {
+        "mean_temp": 26.2634,
+        "mean_wind": 5.0576,
+        "wind_p90": 8.0488,
+        "share_wind_gt6": 0.262
+      },
+      "test": {
+        "mean_temp": 25.8631,
+        "mean_wind": 5.4087,
+        "wind_p90": 8.1938,
+        "share_wind_gt6": 0.3172
+      }
+    }
+  },
+  "A4": {
+    "solar": {
+      "sun": 0.7724,
+      "sun_mean3": 0.7201,
+      "sun_min3": 0.6731,
+      "cloud_streak": -0.4224,
+      "season_sin": 0.5576,
+      "season_cos": -0.0884,
+      "T2M": 0.47,
+      "WS10M": -0.1773
+    },
+    "wind": {
+      "WS10M": 0.8751,
+      "WS50M": 0.8687,
+      "shear": -0.4746,
+      "v_hub": 0.8744,
+      "v_cube": 0.8106,
+      "v_lag1": 0.7387,
+      "v_mean3": 0.7978,
+      "T2M": -0.0739,
+      "season_sin": -0.1554,
+      "season_cos": -0.422
+    }
+  },
+  "A4b": {
+    "solar": {
+      "sun": {
+        "sun": 1.0,
+        "sun_mean3": 0.8845,
+        "sun_min3": 0.8494,
+        "cloud_streak": -0.5598,
+        "season_sin": 0.556,
+        "season_cos": -0.0975,
+        "T2M": 0.4926,
+        "WS10M": -0.2249
+      },
+      "sun_mean3": {
+        "sun": 0.8845,
+        "sun_mean3": 1.0,
+        "sun_min3": 0.9531,
+        "cloud_streak": -0.5791,
+        "season_sin": 0.6145,
+        "season_cos": -0.1189,
+        "T2M": 0.5382,
+        "WS10M": -0.2316
+      },
+      "sun_min3": {
+        "sun": 0.8494,
+        "sun_mean3": 0.9531,
+        "sun_min3": 1.0,
+        "cloud_streak": -0.5244,
+        "season_sin": 0.575,
+        "season_cos": -0.0359,
+        "T2M": 0.4675,
+        "WS10M": -0.2369
+      },
+      "cloud_streak": {
+        "sun": -0.5598,
+        "sun_mean3": -0.5791,
+        "sun_min3": -0.5244,
+        "cloud_streak": 1.0,
+        "season_sin": -0.2493,
+        "season_cos": 0.0463,
+        "T2M": -0.1934,
+        "WS10M": 0.2214
+      },
+      "season_sin": {
+        "sun": 0.556,
+        "sun_mean3": 0.6145,
+        "sun_min3": 0.575,
+        "cloud_streak": -0.2493,
+        "season_sin": 1.0,
+        "season_cos": -0.0273,
+        "T2M": 0.5479,
+        "WS10M": -0.0617
+      },
+      "season_cos": {
+        "sun": -0.0975,
+        "sun_mean3": -0.1189,
+        "sun_min3": -0.0359,
+        "cloud_streak": 0.0463,
+        "season_sin": -0.0273,
+        "season_cos": 1.0,
+        "T2M": -0.4835,
+        "WS10M": -0.4447
+      },
+      "T2M": {
+        "sun": 0.4926,
+        "sun_mean3": 0.5382,
+        "sun_min3": 0.4675,
+        "cloud_streak": -0.1934,
+        "season_sin": 0.5479,
+        "season_cos": -0.4835,
+        "T2M": 1.0,
+        "WS10M": 0.0316
+      },
+      "WS10M": {
+        "sun": -0.2249,
+        "sun_mean3": -0.2316,
+        "sun_min3": -0.2369,
+        "cloud_streak": 0.2214,
+        "season_sin": -0.0617,
+        "season_cos": -0.4447,
+        "T2M": 0.0316,
+        "WS10M": 1.0
+      }
+    },
+    "wind": {
+      "WS10M": {
+        "WS10M": 1.0,
+        "WS50M": 0.9824,
+        "shear": -0.6041,
+        "v_hub": 0.9926,
+        "v_cube": 0.9055,
+        "v_lag1": 0.8752,
+        "v_mean3": 0.9263,
+        "T2M": -0.0344,
+        "season_sin": -0.148,
+        "season_cos": -0.4904
+      },
+      "WS50M": {
+        "WS10M": 0.9824,
+        "WS50M": 1.0,
+        "shear": -0.4574,
+        "v_hub": 0.9978,
+        "v_cube": 0.8882,
+        "v_lag1": 0.8683,
+        "v_mean3": 0.9192,
+        "T2M": -0.1174,
+        "season_sin": -0.1692,
+        "season_cos": -0.3775
+      },
+      "shear": {
+        "WS10M": -0.6041,
+        "WS50M": -0.4574,
+        "shear": 1.0,
+        "v_hub": -0.5112,
+        "v_cube": -0.4836,
+        "v_lag1": -0.4819,
+        "v_mean3": -0.5119,
+        "T2M": -0.3677,
+        "season_sin": -0.054,
+        "season_cos": 0.7242
+      },
+      "v_hub": {
+        "WS10M": 0.9926,
+        "WS50M": 0.9978,
+        "shear": -0.5112,
+        "v_hub": 1.0,
+        "v_cube": 0.8978,
+        "v_lag1": 0.8742,
+        "v_mean3": 0.9253,
+        "T2M": -0.0886,
+        "season_sin": -0.1626,
+        "season_cos": -0.4189
+      },
+      "v_cube": {
+        "WS10M": 0.9055,
+        "WS50M": 0.8882,
+        "shear": -0.4836,
+        "v_hub": 0.8978,
+        "v_cube": 1.0,
+        "v_lag1": 0.8078,
+        "v_mean3": 0.8492,
+        "T2M": -0.0525,
+        "season_sin": -0.1425,
+        "season_cos": -0.4303
+      },
+      "v_lag1": {
+        "WS10M": 0.8752,
+        "WS50M": 0.8683,
+        "shear": -0.4819,
+        "v_hub": 0.8742,
+        "v_cube": 0.8078,
+        "v_lag1": 1.0,
+        "v_mean3": 0.9732,
+        "T2M": -0.0798,
+        "season_sin": -0.1705,
+        "season_cos": -0.4156
+      },
+      "v_mean3": {
+        "WS10M": 0.9263,
+        "WS50M": 0.9192,
+        "shear": -0.5119,
+        "v_hub": 0.9253,
+        "v_cube": 0.8492,
+        "v_lag1": 0.9732,
+        "v_mean3": 1.0,
+        "T2M": -0.0801,
+        "season_sin": -0.181,
+        "season_cos": -0.4416
+      },
+      "T2M": {
+        "WS10M": -0.0344,
+        "WS50M": -0.1174,
+        "shear": -0.3677,
+        "v_hub": -0.0886,
+        "v_cube": -0.0525,
+        "v_lag1": -0.0798,
+        "v_mean3": -0.0801,
+        "T2M": 1.0,
+        "season_sin": 0.5655,
+        "season_cos": -0.4285
+      },
+      "season_sin": {
+        "WS10M": -0.148,
+        "WS50M": -0.1692,
+        "shear": -0.054,
+        "v_hub": -0.1626,
+        "v_cube": -0.1425,
+        "v_lag1": -0.1705,
+        "v_mean3": -0.181,
+        "T2M": 0.5655,
+        "season_sin": 1.0,
+        "season_cos": -0.0273
+      },
+      "season_cos": {
+        "WS10M": -0.4904,
+        "WS50M": -0.3775,
+        "shear": 0.7242,
+        "v_hub": -0.4189,
+        "v_cube": -0.4303,
+        "v_lag1": -0.4156,
+        "v_mean3": -0.4416,
+        "T2M": -0.4285,
+        "season_sin": -0.0273,
+        "season_cos": 1.0
+      }
+    }
+  },
+  "A5": {
+    "sun": {
+      "anom_std": 0.7803,
+      "max_pos": 2.1732,
+      "max_neg": -3.9753,
+      "mean_level": 5.2107,
+      "rel_variability": 0.1498
+    },
+    "v_hub": {
+      "anom_std": 1.456,
+      "max_pos": 6.1062,
+      "max_neg": -5.8144,
+      "mean_level": 5.1281,
+      "rel_variability": 0.2839
+    }
+  },
+  "A6": {
+    "sun": {
+      "train_mean": 5.2181,
+      "test_mean": 5.2441,
+      "test_minus_train": 0.0259,
+      "month_matched_drift": -0.0741,
+      "n_months_exceed_noise": 4,
+      "drift_noise": {
+        "1": {
+          "train_mean": 5.0402,
+          "val_mean": 4.7087,
+          "test_mean": 5.0013,
+          "drift": -0.0388,
+          "noise_std": 0.2521,
+          "exceeds_noise": false
+        },
+        "2": {
+          "train_mean": 5.9926,
+          "val_mean": 6.1581,
+          "test_mean": 5.9578,
+          "drift": -0.0348,
+          "noise_std": 0.2111,
+          "exceeds_noise": false
+        },
+        "3": {
+          "train_mean": 6.4247,
+          "val_mean": 6.3753,
+          "test_mean": 6.4541,
+          "drift": 0.0294,
+          "noise_std": 0.2188,
+          "exceeds_noise": false
+        },
+        "4": {
+          "train_mean": 6.4766,
+          "val_mean": 6.6084,
+          "test_mean": 6.4768,
+          "drift": 0.0002,
+          "noise_std": 0.2152,
+          "exceeds_noise": false
+        },
+        "5": {
+          "train_mean": 6.1065,
+          "val_mean": 6.0095,
+          "test_mean": 5.7839,
+          "drift": -0.3226,
+          "noise_std": 0.4135,
+          "exceeds_noise": false
+        },
+        "6": {
+          "train_mean": 5.551,
+          "val_mean": 4.9189,
+          "test_mean": 5.1446,
+          "drift": -0.4065,
+          "noise_std": 0.2576,
+          "exceeds_noise": true
+        },
+        "7": {
+          "train_mean": 4.3298,
+          "val_mean": 3.9408,
+          "test_mean": 4.1044,
+          "drift": -0.2255,
+          "noise_std": 0.3491,
+          "exceeds_noise": false
+        },
+        "8": {
+          "train_mean": 4.778,
+          "val_mean": 4.7352,
+          "test_mean": 4.3258,
+          "drift": -0.4522,
+          "noise_std": 0.3781,
+          "exceeds_noise": true
+        },
+        "9": {
+          "train_mean": 4.7042,
+          "val_mean": 4.8411,
+          "test_mean": 4.8287,
+          "drift": 0.1245,
+          "noise_std": 0.1015,
+          "exceeds_noise": true
+        },
+        "10": {
+          "train_mean": 4.905,
+          "val_mean": 4.7273,
+          "test_mean": 4.6717,
+          "drift": -0.2334,
+          "noise_std": 0.5438,
+          "exceeds_noise": false
+        },
+        "11": {
+          "train_mean": 4.3834,
+          "val_mean": 4.4756,
+          "test_mean": 4.6719,
+          "drift": 0.2885,
+          "noise_std": 0.4264,
+          "exceeds_noise": false
+        },
+        "12": {
+          "train_mean": 4.4108,
+          "val_mean": 4.0358,
+          "test_mean": 4.7931,
+          "drift": 0.3823,
+          "noise_std": 0.1638,
+          "exceeds_noise": true
+        }
+      }
+    },
+    "v_hub": {
+      "train_mean": 4.9798,
+      "test_mean": 5.5116,
+      "test_minus_train": 0.5318,
+      "month_matched_drift": 0.4075,
+      "n_months_exceed_noise": 7,
+      "drift_noise": {
+        "1": {
+          "train_mean": 4.1911,
+          "val_mean": 4.1377,
+          "test_mean": 4.9325,
+          "drift": 0.7414,
+          "noise_std": 0.3472,
+          "exceeds_noise": true
+        },
+        "2": {
+          "train_mean": 4.4046,
+          "val_mean": 4.5731,
+          "test_mean": 4.8424,
+          "drift": 0.4378,
+          "noise_std": 0.4045,
+          "exceeds_noise": true
+        },
+        "3": {
+          "train_mean": 4.3846,
+          "val_mean": 3.8033,
+          "test_mean": 3.9882,
+          "drift": -0.3964,
+          "noise_std": 0.4476,
+          "exceeds_noise": false
+        },
+        "4": {
+          "train_mean": 3.7594,
+          "val_mean": 3.6015,
+          "test_mean": 3.567,
+          "drift": -0.1923,
+          "noise_std": 0.1343,
+          "exceeds_noise": true
+        },
+        "5": {
+          "train_mean": 4.4639,
+          "val_mean": 4.2831,
+          "test_mean": 5.2211,
+          "drift": 0.7571,
+          "noise_std": 0.6234,
+          "exceeds_noise": true
+        },
+        "6": {
+          "train_mean": 6.3998,
+          "val_mean": 7.0475,
+          "test_mean": 7.1098,
+          "drift": 0.71,
+          "noise_std": 0.4317,
+          "exceeds_noise": true
+        },
+        "7": {
+          "train_mean": 7.4323,
+          "val_mean": 9.5455,
+          "test_mean": 8.8084,
+          "drift": 1.3761,
+          "noise_std": 1.1532,
+          "exceeds_noise": true
+        },
+        "8": {
+          "train_mean": 6.6754,
+          "val_mean": 5.7707,
+          "test_mean": 7.1009,
+          "drift": 0.4254,
+          "noise_std": 0.5872,
+          "exceeds_noise": false
+        },
+        "9": {
+          "train_mean": 5.5948,
+          "val_mean": 5.8998,
+          "test_mean": 5.0894,
+          "drift": -0.5054,
+          "noise_std": 0.446,
+          "exceeds_noise": true
+        },
+        "10": {
+          "train_mean": 3.7589,
+          "val_mean": 3.5374,
+          "test_mean": 4.6525,
+          "drift": 0.8936,
+          "noise_std": 1.0889,
+          "exceeds_noise": false
+        },
+        "11": {
+          "train_mean": 4.3143,
+          "val_mean": 4.4918,
+          "test_mean": 4.5851,
+          "drift": 0.2709,
+          "noise_std": 0.3061,
+          "exceeds_noise": false
+        },
+        "12": {
+          "train_mean": 4.6065,
+          "val_mean": 4.2257,
+          "test_mean": 4.9787,
+          "drift": 0.3722,
+          "noise_std": 0.3766,
+          "exceeds_noise": false
+        }
+      }
+    }
+  },
+  "A7": {
+    "structural": {
+      "NASA missing-day code (-999), any raw column": 0,
+      "NaN after -999 -> NaN, any column": 0,
+      "duplicate (site, date) rows": 0,
+      "missing dates inside each site's range": 0,
+      "sunlight < 0 or > 12 kWh/m2/day": 0,
+      "wind < 0 m/s (10 m or 50 m)": 0,
+      "air temperature outside -10..50 C": 0
+    },
+    "iqr": {
+      "sun": {
+        "low": 144,
+        "high": 0,
+        "total": 144,
+        "top_months": [
+          7,
+          9,
+          11
+        ]
+      },
+      "T2M": {
+        "low": 26,
+        "high": 410,
+        "total": 436,
+        "top_months": [
+          4,
+          5,
+          6
+        ]
+      },
+      "WS10M": {
+        "low": 0,
+        "high": 732,
+        "total": 732,
+        "top_months": [
+          7,
+          6,
+          8
+        ]
+      },
+      "WS50M": {
+        "low": 0,
+        "high": 568,
+        "total": 568,
+        "top_months": [
+          7,
+          8,
+          6
+        ]
+      }
+    }
+  }
+}
