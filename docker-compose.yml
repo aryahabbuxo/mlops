@@ -1,0 +1,33 @@
+# Local stack: the forecast API on the stub predictor, plus TensorBoard reading the
+# (initially empty) runs/tb folder that Minnie's training will fill. TensorBoard mounts the
+# folder read-only so it starts before any event files exist.
+
+services:
+  api:
+    build:
+      context: .
+      args:
+        GIT_COMMIT: ${GIT_COMMIT:-uncommitted}
+    image: greenops-api:dev
+    ports:
+      - "8000:8000"
+    environment:
+      PREDICTOR: stub
+      LOG_LEVEL: INFO
+    healthcheck:
+      test: ["CMD", "python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).status == 200 else 1)"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+    restart: unless-stopped
+
+  tensorboard:
+    # Pinned to the TF image that carries TensorBoard; align the tag with Minnie's tensorflow-cpu pin.
+    image: tensorflow/tensorflow:2.20.0
+    command: tensorboard --logdir /runs/tb --host 0.0.0.0 --port 6006
+    ports:
+      - "6006:6006"
+    volumes:
+      - ./runs/tb:/runs/tb:ro
+    restart: unless-stopped

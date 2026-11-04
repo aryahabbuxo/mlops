@@ -15,3 +15,6 @@ requests==2.32.5
 ruff==0.17.0
 mlflow==3.17.1
 scikit-learn==1.7.1
+fastapi==0.115.12
+httpx==0.28.1
+uvicorn[standard]==0.34.0
