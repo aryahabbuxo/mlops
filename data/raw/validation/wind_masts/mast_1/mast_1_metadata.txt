@@ -1,0 +1,32 @@
+ Wind Monitoring Station Dataset - 1
+====================================
+
+The dataset includes meteorological observations recorded using wind met mast installed at designated locations. The information may consist of wind speed, wind direction, collected during the observation period.
+
+Dataset Information
+===================
+
+Wind Monitoring Station Name 	Achankuttam -20m Mast Height
+Location 			Achankuttam -TN (Latitude: 8.952222° N Longitude: 77.477222° E)
+Measurement Period 		01/01/1997 - 31/12/1997
+File Name 			ACHANKUTTAM_-TN-1.xlsx
+File Type 			XLSX
+File Size 			376.73 KB 
+
+
+Attribute Description
+=====================
+
+Time_stamp	MM/DD/YYYY H:MM
+WIND_WDS_E_10_0 : Wind Direction – East – 10 m – sensor/channel 0
+WIND_WDS_E_20_1 : Wind Direction – East – 20 m – sensor/channel 1
+WIND_WDS_NE_10_0 : Wind Direction – Northeast – 10 m – sensor/channel 0
+WIND_WDS_NE_20_1 : Wind Direction – Northeast – 20 m – sensor/channel 1
+WIND_WDS_NW_10_0 : Wind Direction – Northwest – 10 m – sensor/channel 0
+WIND_WDS_N_10_0 : Wind Direction – North – 10 m – sensor/channel 0
+WIND_WDS_SE_10_0 : Wind Direction – Southeast – 10 m – sensor/channel 0
+WIND_WDS_SW_10_0 : Wind Direction – Southwest – 10 m – sensor/channel 0
+WIND_WDS_S_10_0 : Wind Direction – South – 10 m – sensor/channel 0
+WIND_WDS_W_10_0 : Wind Direction – West – 10 m – sensor/channel 0
+WIND_WSS_10_N_00 : Wind Speed – 10 m – North – sensor/channel 00
+WIND_WSS_20_N_01 : Wind Speed – 20 m – North – sensor/channel 01

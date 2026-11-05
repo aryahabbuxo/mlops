@@ -4,6 +4,7 @@ import mlflow
 import numpy as np
 import pandas as pd
 import pytest
+from mlflow.tracking import MlflowClient
 
 from feature_fixtures import make_daily, make_weather
 from solarwind.config import Settings
@@ -111,12 +112,93 @@ def test_every_logged_model_loads_back_and_predicts_the_same(tmp_path, monkeypat
     assert len(runs) == 3
     primary = evaluate.metrics_table(evaluate.common_rows(long))
     run.log_runs(runs, long, primary, FRAME, SETTINGS, train, "abc123")
-    logged = mlflow.search_runs(experiment_names=[train.mlflow_experiment])
-    by_name = dict(zip(logged["tags.model"], logged["run_id"], strict=True))
     for r in runs:
-        model = mlflow.sklearn.load_model(f"runs:/{by_name[r.model_name]}/model")
+        assert r.model_id is not None, r.model_name
+        model = mlflow.sklearn.load_model(f"models:/{r.model_id}")
         expected = r.fitted.predict(FRAME[r.columns])
         assert np.allclose(model.predict(FRAME[r.columns]), expected), r.model_name
+
+
+def test_baselines_and_models_share_one_experiment(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    train = fast_settings(
+        targets=("solar_cf",),
+        mlflow_tracking_uri=f"sqlite:///{tmp_path / 'mlflow.db'}",
+        log_models=False,
+    )
+    long, runs = run.run_all(FRAME, SETTINGS, train)
+    primary = evaluate.metrics_table(evaluate.common_rows(long))
+    run.log_runs(runs, long, primary, FRAME, SETTINGS, train, "abc123")
+    logged = mlflow.search_runs(experiment_names=[train.mlflow_experiment])
+    assert len(logged) == len(runs)
+    assert {"baseline", "ml"} == set(logged["tags.kind"])
+
+
+def test_ml_runs_log_a_feature_importance_artifact(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    train = fast_settings(
+        targets=("wind_cf",),
+        mlflow_tracking_uri=f"sqlite:///{tmp_path / 'mlflow.db'}",
+        log_models=False,
+    )
+    long, runs = run.run_all(FRAME, SETTINGS, train)
+    ml = [r for r in runs if r.kind == "ml"]
+    primary = evaluate.metrics_table(evaluate.common_rows(long))
+    run.log_runs(ml, long, primary, FRAME, SETTINGS, train, "abc123")
+    client = MlflowClient(train.mlflow_tracking_uri)
+    exp = client.get_experiment_by_name(train.mlflow_experiment)
+    runs_logged = client.search_runs([exp.experiment_id])
+    assert len(runs_logged) == len(ml)
+    for r in runs_logged:
+        names = [a.path for a in client.list_artifacts(r.info.run_id)]
+        assert "importance.csv" in names and "importance.png" in names
+
+
+def test_log_summary_creates_a_summary_run_with_artifacts(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    train = fast_settings(
+        targets=("solar_cf",), mlflow_tracking_uri=f"sqlite:///{tmp_path / 'mlflow.db'}"
+    )
+    long, _ = run.run_all(FRAME, SETTINGS, train)
+    primary = evaluate.metrics_table(evaluate.common_rows(long))
+    table = run.comparison_table(primary, SETTINGS.baseline_test_label)
+    run.write_reports(long, primary, table, SETTINGS, train)
+    coverage = evaluate.coverage(long, evaluate.common_rows(long))
+    run.log_summary(FRAME, table, coverage, train)
+    client = MlflowClient(train.mlflow_tracking_uri)
+    exp = client.get_experiment_by_name(train.mlflow_experiment)
+    summary = [
+        r
+        for r in client.search_runs([exp.experiment_id])
+        if r.data.tags.get("mlflow.runName") == "summary"
+    ]
+    assert len(summary) == 1
+    names = [a.path for a in client.list_artifacts(summary[0].info.run_id)]
+    assert {"comparison.csv", "data_profile.csv", "coverage.csv"} <= set(names)
+
+
+def test_logged_model_name_is_descriptive():
+    name = run.logged_model_name("solar_cf", "ridge", "weather_only")
+    assert name == "solar_cf_ridge_weather_only"
+
+
+def test_register_champions_sets_champion_and_challenger(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    uri = f"sqlite:///{tmp_path / 'mlflow.db'}"
+    train = fast_settings(targets=("wind_cf",), mlflow_tracking_uri=uri)
+    long, runs = run.run_all(FRAME, SETTINGS, train)
+    primary = evaluate.metrics_table(evaluate.common_rows(long))
+    table = run.comparison_table(primary, SETTINGS.baseline_test_label)
+    run.log_runs(runs, long, primary, FRAME, SETTINGS, train, "abc123")
+    registered = run.register_champions(runs, table, train)
+
+    assert set(registered["wind_cf"]) == set(run.REGISTRY_ALIASES)
+    client = MlflowClient(uri)
+    name = run.registered_model_name("wind_cf")
+    versions = {a: client.get_model_version_by_alias(name, a).version for a in run.REGISTRY_ALIASES}
+    assert versions["champion"] != versions["challenger"]
+    champion = mlflow.sklearn.load_model(f"models:/{name}@champion")
+    assert hasattr(champion, "predict")
 
 
 def test_write_reports_creates_the_dvc_outputs(tmp_path, monkeypatch):

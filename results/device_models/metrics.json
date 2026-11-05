@@ -1,0 +1,8 @@
+{
+  "sunlight_tomorrow_test_mae": 0.5751,
+  "sunlight_tomorrow_test_ratio_to_naive": 0.5828,
+  "hub_wind_tomorrow_test_mae": 0.661,
+  "hub_wind_tomorrow_test_ratio_to_naive": 0.417,
+  "low_wind_tomorrow_test_pr_auc": 0.56,
+  "low_wind_tomorrow_test_f1": 0.5814
+}
