@@ -361,9 +361,9 @@ stages:
       size: 1875
     - path: src/solarwind/devices
       hash: md5
-      md5: 940bf854636ea4e2e4d1e15a47fea5de.dir
-      size: 179139
-      nfiles: 16
+      md5: 7410f6349d96e9e2a8d8175307057e3d.dir
+      size: 303715
+      nfiles: 20
     outs:
     - path: RESULTS.md
       hash: md5
@@ -391,7 +391,7 @@ stages:
       size: 103
     - path: serve
       hash: md5
-      md5: 38a542bb3408c33d22b179259845cff1.dir
+      md5: 0ccb1a30c80fcb03ca3dbdcf9081cf92.dir
       size: 3119699
       nfiles: 5
   train_lstm:
@@ -433,3 +433,25 @@ stages:
       md5: e83407c4791bb886ac61ffc93af51864.dir
       size: 208462
       nfiles: 3
+  quality_gates:
+    cmd: python -m solarwind.devices.gates check --serve serve --out 
+      results/gates/report.json
+    deps:
+    - path: serve
+      hash: md5
+      md5: 0ccb1a30c80fcb03ca3dbdcf9081cf92.dir
+      size: 3119699
+      nfiles: 5
+    - path: src/solarwind/devices/gates.py
+      hash: md5
+      md5: c3c3c65ad794c79d6d1cd971e7c13d87
+      size: 21809
+    - path: src/solarwind/devices/inference.py
+      hash: md5
+      md5: 7ac4785f6306ec863fc8f194d6789879
+      size: 18953
+    outs:
+    - path: results/gates/report.json
+      hash: md5
+      md5: d26a471eacf80aee59de6cb3859700be
+      size: 4546

@@ -144,3 +144,13 @@ stages:
     metrics:
       - results/lstm/metrics.json:
           cache: false
+
+  quality_gates:
+    cmd: python -m solarwind.devices.gates check --serve serve --out results/gates/report.json
+    deps:
+      - serve
+      - src/solarwind/devices/gates.py
+      - src/solarwind/devices/inference.py
+    outs:
+      - results/gates/report.json:
+          cache: false
