@@ -1,17 +1,10 @@
-"""Make the repo-root modules (devices.py, device_pipeline.py) importable and build fake weather."""
-
-import sys
-from pathlib import Path
+"""Build fake NASA-like weather for the device tests (no data files needed)."""
 
 import numpy as np
 import pandas as pd
 import pytest
 
-ROOT = Path(__file__).resolve().parents[2]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-
-import device_pipeline as pipe  # noqa: E402
+from solarwind.devices import pipeline as pipe
 
 
 def make_weather(seed: int = 0) -> pd.DataFrame:

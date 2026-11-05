@@ -26,8 +26,8 @@ import numpy as np
 import pandas as pd
 from mlflow.tracking import MlflowClient
 
-import device_pipeline as pipe
-import devices as dv
+from solarwind.devices import pipeline as pipe
+from solarwind.devices import specs as dv
 
 ROOT = Path(__file__).resolve().parent
 MLRUNS = ROOT / "mlruns"

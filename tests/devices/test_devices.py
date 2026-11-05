@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-import devices
+from solarwind.devices import specs as devices
 
 
 def test_zero_sunlight_gives_zero_panel_energy():

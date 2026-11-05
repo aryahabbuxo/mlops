@@ -12,7 +12,7 @@ from sklearn.ensemble import HistGradientBoostingRegressor
 from sklearn.linear_model import Ridge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
-import devices as D
+from solarwind.devices import specs as D
 
 # ---------------- config: edit these ----------------
 NASA_GLOB = "data/raw/nasa/*.csv"  # one file per site; file name (without .csv) = site name

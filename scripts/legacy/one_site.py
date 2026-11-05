@@ -1,7 +1,7 @@
 import matplotlib; matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-import devices as D
+from solarwind.devices import specs as D
 import run_all as R
 
 SOLAR, WIND, YEAR = "Pavagada", "Chitradurga", 2025

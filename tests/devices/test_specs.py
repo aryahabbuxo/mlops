@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-import devices
+from solarwind.devices import specs as devices
 
 SPECS_CSV = Path(__file__).resolve().parents[2] / "specs" / "device_specs.csv"
 ORIGINS = {"published", "worked_out", "our_choice"}

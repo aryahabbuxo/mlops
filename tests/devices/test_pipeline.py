@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import device_pipeline as pipe
+from solarwind.devices import pipeline as pipe
 
 FEATURE_COLS = sorted(set(pipe.SUN_FEATS + pipe.WIND_FEATS + pipe.LOW_FEATS))
 

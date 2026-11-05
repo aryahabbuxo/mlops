@@ -18,3 +18,5 @@ scikit-learn==1.7.1
 fastapi==0.115.12
 httpx==0.28.1
 uvicorn[standard]==0.34.0
+skops==0.16.0
+tensorflow-cpu==2.20.0

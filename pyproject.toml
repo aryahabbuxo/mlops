@@ -36,6 +36,10 @@ scripts = [
 train = [
     "mlflow==3.17.1",
     "scikit-learn==1.7.1",
+    "skops==0.16.0",
+]
+tf = [
+    "tensorflow-cpu==2.20.0",
 ]
 serve = [
     "fastapi==0.115.12",
@@ -60,8 +64,8 @@ addopts = ["--import-mode=importlib"]
 [tool.ruff]
 line-length = 100
 target-version = "py312"
-src = [".", "src", "tests"]
-extend-exclude = ["run_all.py", "one_site.py", "make_data_story.py", "make_device_story.py"]
+src = ["src", "tests"]
+extend-exclude = ["scripts/legacy"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "N"]

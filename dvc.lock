@@ -338,3 +338,63 @@ stages:
       hash: md5
       md5: 496adf98818ec91a343d1d539e3b03e9
       size: 2552991
+  train_device_models:
+    cmd: python -m solarwind.devices.train --export serve && python 
+      make_results_md.py
+    deps:
+    - path: config/sites.csv
+      hash: md5
+      md5: a18e739ff87bc572c71b91656fd7d487
+      size: 723
+    - path: data/raw/nasa
+      hash: md5
+      md5: 8d414c53fb83b7022985ddb9377effcb.dir
+      size: 684533
+      nfiles: 8
+    - path: make_results_md.py
+      hash: md5
+      md5: 8164534b87f102082fce4a6dabd905df
+      size: 7488
+    - path: specs/device_specs.csv
+      hash: md5
+      md5: 11200c9ef4ee6cf73490dec0c080cd90
+      size: 1875
+    - path: src/solarwind/devices
+      hash: md5
+      md5: dcb903e793a9bcd8951eaacd18e86e91.dir
+      size: 93067
+      nfiles: 10
+    outs:
+    - path: RESULTS.md
+      hash: md5
+      md5: 798a91b46224edb13c5390bf5dfcc687
+      size: 5001
+    - path: results/device_models/device_error.csv
+      hash: md5
+      md5: 75eb530f0e07061df53309b6f7baf231
+      size: 553
+    - path: results/device_models/low_wind_results.csv
+      hash: md5
+      md5: b6379f0d35863e995957403dc355816c
+      size: 695
+    - path: results/device_models/metrics.json
+      hash: md5
+      md5: 0a2573eb4b70d9a6d874f5a91d6b4d3a
+      size: 269
+    - path: results/device_models/mlflow_run_id.txt
+      hash: md5
+      md5: 17164929c69acde72e1b688ad7f5f612
+      size: 32
+    - path: results/device_models/regression_results.csv
+      hash: md5
+      md5: 05272d180cb132e6bae816883c3864d3
+      size: 2290
+    - path: results/device_models/selection.json
+      hash: md5
+      md5: 41a4c403f2d0b87d1f345ba94da07237
+      size: 103
+    - path: serve
+      hash: md5
+      md5: dee91f3c9190f51cc369a253955db1c8.dir
+      size: 3119699
+      nfiles: 5

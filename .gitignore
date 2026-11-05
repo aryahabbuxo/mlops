@@ -18,3 +18,9 @@ data/scratch/
 mlflow.db
 mlruns/
 mlartifacts/
+/serve
+/RESULTS.md
+
+mlflow.db
+runs/tb/*
+!runs/tb/.gitkeep

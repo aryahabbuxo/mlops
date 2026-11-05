@@ -10,8 +10,8 @@ from pathlib import Path
 
 import pandas as pd
 
-import device_pipeline as pipe
-import devices
+from solarwind.devices import pipeline as pipe
+from solarwind.devices import specs as devices
 
 OUT = Path("results/device_models")
 PRETTY = {

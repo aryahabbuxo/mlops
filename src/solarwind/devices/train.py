@@ -4,13 +4,14 @@ Tasks
   sunlight_tomorrow  (solar sites; feeds the lamp and the heater)
   hub_wind_tomorrow  (wind sites; feeds the turbine)
   low_wind_tomorrow  (wind sites; yes/no alert)
-Run from the repo root:  python train_device_models.py
+Run from the repo root:  python -m solarwind.devices.train [--export serve]
 Outputs go to results/device_models/ (a DVC stage output) and to the MLflow experiment
 "greenops-devices" in the same mlflow.db as the Phase 1 runs.
 """
 
 from __future__ import annotations
 
+import argparse
 import contextlib
 import hashlib
 import json
@@ -24,8 +25,9 @@ import numpy as np
 import pandas as pd
 from sklearn.metrics import average_precision_score, precision_recall_fscore_support
 
-import device_pipeline as pipe
-import devices
+from solarwind.devices import bundle
+from solarwind.devices import pipeline as pipe
+from solarwind.devices import specs as devices
 
 for stream in (sys.stdout, sys.stderr):
     with contextlib.suppress(AttributeError, ValueError):
@@ -58,6 +60,7 @@ OUT = Path("results/device_models")
 TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
 EXPERIMENT = "greenops-devices"
 SPECS_CSV = Path("specs/device_specs.csv")
+SITES_CSV = Path("config/sites.csv")
 MIN_ROWS = 500
 
 
@@ -229,13 +232,63 @@ def log_to_mlflow(
         return parent.info.run_id
 
 
-def main() -> None:
+def export_champions(export_dir: Path, d, picks, reg, clf, models, clf_models, git: str) -> dict:
+    """Write the serving bundle: the models chosen on validation, fitted on train only."""
+    cloudy_cut, low_cut = pipe.train_thresholds(d)
+
+    def metrics(task: str, pick: str) -> dict[str, float]:
+        rows = reg[(reg.task == task) & (reg.planner == pick)].set_index("split")
+        return {
+            "val_mae": rows.loc["val", "mae"],
+            "test_mae": rows.loc["test", "mae"],
+            "val_ratio_to_persistence": rows.loc["val", "ratio_to_persistence"],
+        }
+
+    low = picks["low_wind_tomorrow"]
+    low_rows = clf[clf.rung == low].set_index("split")
+    sun_pick, wind_pick = picks["sunlight_tomorrow"], picks["hub_wind_tomorrow"]
+    sun_model, wind_model = models["sunlight"][sun_pick], models["wind"][wind_pick]
+    sun_metrics = metrics("sunlight_tomorrow", sun_pick)
+    wind_metrics = metrics("hub_wind_tomorrow", wind_pick)
+    tasks = [
+        bundle.TaskExport("sunlight", sun_pick, sun_model, sun_metrics),
+        bundle.TaskExport("hubwind", wind_pick, wind_model, wind_metrics),
+        bundle.TaskExport(
+            "lowwind",
+            low,
+            clf_models[low],
+            {
+                "val_pr_auc": low_rows.loc["val", "pr_auc"],
+                "test_pr_auc": low_rows.loc["test", "pr_auc"],
+            },
+            alert_threshold=low_rows.loc["val", "threshold"],
+        ),
+    ]
+    return bundle.export_bundle(
+        export_dir,
+        weather=d,
+        sites=bundle.read_sites(SITES_CSV),
+        cloudy_cut=cloudy_cut,
+        low_cut=low_cut,
+        tasks=tasks,
+        git_commit=git,
+        specs_sha256=sha256(SPECS_CSV),
+        train_end=pipe.TRAIN_END,
+        val_end=pipe.VAL_END,
+    )
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--export", type=Path, metavar="DIR", help="also write the serving bundle")
+    args = parser.parse_args(argv)
+
     devices.warn_if_placeholder()
     OUT.mkdir(parents=True, exist_ok=True)
     d = pipe.load_nasa()
     sun, wind = pipe.build_frames(d)
-    sun_df, _ = pipe.regression_planners(sun, pipe.SUN_FEATS)
-    wind_df, _ = pipe.regression_planners(wind, pipe.WIND_FEATS)
+    sun_df, sun_models = pipe.regression_planners(sun, pipe.SUN_FEATS)
+    wind_df, wind_models = pipe.regression_planners(wind, pipe.WIND_FEATS)
     for name, f in [("sunlight", sun_df), ("wind", wind_df)]:
         for split in ("train", "val", "test"):
             assert (f.split == split).sum() >= MIN_ROWS, f"too few {split} rows for {name}"
@@ -246,7 +299,7 @@ def main() -> None:
         "sunlight_tomorrow": select_on_validation(reg[reg.task == "sunlight_tomorrow"]),
         "hub_wind_tomorrow": select_on_validation(reg[reg.task == "hub_wind_tomorrow"]),
     }
-    clf_df = pipe.classifier_ladder(wind, pipe.LOW_FEATS)
+    clf_df, clf_models = pipe.classifier_ladder(wind, pipe.LOW_FEATS, return_models=True)
     clf = classifier_table(clf_df)
     picks["low_wind_tomorrow"] = (
         clf[(clf.split == "val") & clf.rung.isin(["logistic", "hgb_clf"])]
@@ -276,6 +329,12 @@ def main() -> None:
     print("selected on validation:", picks)
     print("MLflow parent run:", run_id, "in", EXPERIMENT)
     print("files in", OUT.resolve())
+    if args.export:
+        manifest = export_champions(
+            args.export, d, picks, reg, clf,
+            {"sunlight": sun_models, "wind": wind_models}, clf_models, git_commit(),
+        )  # fmt: skip
+        print("serving bundle:", args.export.resolve(), "|", ", ".join(manifest["tasks"]))
 
 
 if __name__ == "__main__":

@@ -17,7 +17,7 @@ from sklearn.linear_model import LogisticRegression, Ridge
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
-import devices
+from solarwind.devices import specs as devices
 
 NASA_GLOB = "data/raw/nasa/*.csv"
 SOLAR_SITES = ["Pavagada", "Raichur", "Kalaburagi", "Mysuru"]
@@ -158,8 +158,13 @@ def regression_planners(df: pd.DataFrame, feats: list[str]) -> tuple[pd.DataFram
     return df, models
 
 
-def classifier_ladder(df: pd.DataFrame, feats: list[str]) -> pd.DataFrame:
-    """Low-wind-tomorrow score (probability or flag) per rung; fitted on training rows only."""
+def classifier_ladder(
+    df: pd.DataFrame, feats: list[str], *, return_models: bool = False
+) -> pd.DataFrame | tuple[pd.DataFrame, dict]:
+    """Low-wind-tomorrow score (probability or flag) per rung; fitted on training rows only.
+
+    With `return_models=True` also returns the fitted classifiers (for the serving bundle).
+    """
     df = df.dropna(subset=[*feats, "low_next", "target_date"]).copy()
     df["tmonth"] = df.target_date.dt.month
     tr = df[df.split == "train"]
@@ -175,4 +180,6 @@ def classifier_ladder(df: pd.DataFrame, feats: list[str]) -> pd.DataFrame:
     hgbc.fit(x_all[fit], df.loc[fit, "low_next"])
     df["logistic"] = logit.predict_proba(x_all)[:, 1]
     df["hgb_clf"] = hgbc.predict_proba(x_all)[:, 1]
+    if return_models:
+        return df, {"logistic": logit, "hgb_clf": hgbc}
     return df
