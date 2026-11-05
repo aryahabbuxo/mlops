@@ -1,12 +1,12 @@
-"""Train the device models, pick the best on VALIDATION, report TEST once, log to MLflow.
+"""Train the device models, pick the best on VALIDATION, report TEST once, log to TensorBoard.
 
 Tasks
   sunlight_tomorrow  (solar sites; feeds the lamp and the heater)
   hub_wind_tomorrow  (wind sites; feeds the turbine)
   low_wind_tomorrow  (wind sites; yes/no alert)
 Run from the repo root:  python -m solarwind.devices.train [--export serve]
-Outputs go to results/device_models/ (a DVC stage output) and to the MLflow experiment
-"greenops-devices" in the same mlflow.db as the Phase 1 runs.
+Outputs go to results/device_models/ (a DVC stage output); every model is also logged to
+TensorBoard (runs/tb). Versions and aliases live in the MLflow registry (registry.py).
 """
 
 from __future__ import annotations
@@ -20,12 +20,11 @@ import subprocess
 import sys
 from pathlib import Path
 
-import mlflow
 import numpy as np
 import pandas as pd
 from sklearn.metrics import average_precision_score, precision_recall_fscore_support
 
-from solarwind.devices import bundle
+from solarwind.devices import bundle, tracking
 from solarwind.devices import pipeline as pipe
 from solarwind.devices import specs as devices
 
@@ -57,8 +56,6 @@ load_env()
 use_utf8_console()
 
 OUT = Path("results/device_models")
-TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
-EXPERIMENT = "greenops-devices"
 SPECS_CSV = Path("specs/device_specs.csv")
 SITES_CSV = Path("config/sites.csv")
 MIN_ROWS = 500
@@ -181,57 +178,6 @@ def classifier_table(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-# ---------------- MLflow ----------------
-def log_to_mlflow(
-    reg: pd.DataFrame, clf: pd.DataFrame, dev: pd.DataFrame, picks: dict, d: pd.DataFrame
-) -> str:
-    mlflow.set_tracking_uri(TRACKING_URI)
-    mlflow.set_experiment(EXPERIMENT)
-    tags = {
-        "git_commit": git_commit(),
-        "specs_sha256": sha256(SPECS_CSV),
-        "nasa_files": str(d.site.nunique()),
-        "weather": "NASA POWER daily, 8 Karnataka sites",
-        "device_output": "generated from published specs and formulas",
-        "split": f"train<= {pipe.TRAIN_END}, val<= {pipe.VAL_END}, test after",
-    }
-    with mlflow.start_run(run_name="device-models") as parent:
-        mlflow.set_tags(tags)
-        mlflow.log_params({f"selected_{k}": v for k, v in picks.items()})
-        mlflow.log_params(
-            {"seed": pipe.SEED, "turbine_hub_height_m": devices.SPECS["turbine"]["hub_height_m"]}
-        )
-        for task in reg.task.unique():
-            for planner in pipe.PLANNERS:
-                with mlflow.start_run(run_name=f"{task}/{planner}", nested=True):
-                    mlflow.set_tags({**tags, "task": task, "planner": planner})
-                    feats = pipe.SUN_FEATS if task.startswith("sunlight") else pipe.WIND_FEATS
-                    mlflow.log_param("n_features", len(feats) if planner in ("ridge", "hgb") else 0)
-                    for _, r in reg[(reg.task == task) & (reg.planner == planner)].iterrows():
-                        for m in ("mae", "rmse", "bias", "ratio_to_naive", "ratio_to_persistence"):
-                            mlflow.log_metric(f"{r.split}_{m}", float(r[m]))
-        for rung in LOW_RUNGS:
-            with mlflow.start_run(run_name=f"low_wind_tomorrow/{rung}", nested=True):
-                mlflow.set_tags({**tags, "task": "low_wind_tomorrow", "planner": rung})
-                for _, r in clf[clf.rung == rung].iterrows():
-                    for m in ("precision", "recall", "f1", "pr_auc"):
-                        mlflow.log_metric(f"{r.split}_{m}", float(r[m]))
-                    mlflow.log_metric("threshold", float(r.threshold))
-        for _, r in dev.iterrows():
-            with mlflow.start_run(run_name=f"device_error/{r.planner}", nested=True):
-                mlflow.set_tags({**tags, "task": "device_error_test", "planner": r.planner})
-                for m in (
-                    "lamp_mae_hours",
-                    "heater_mae_C",
-                    "turbine_mae_kwh_day",
-                    "backup_precision",
-                    "backup_recall",
-                ):
-                    mlflow.log_metric(m, float(r[m]))
-        mlflow.log_artifacts(str(OUT))
-        return parent.info.run_id
-
-
 def export_champions(export_dir: Path, d, picks, reg, clf, models, clf_models, git: str) -> dict:
     """Write the serving bundle: the models chosen on validation, fitted on train only."""
     cloudy_cut, low_cut = pipe.train_thresholds(d)
@@ -324,10 +270,11 @@ def main(argv: list[str] | None = None) -> None:
             metrics[f"{task}_test_ratio_to_naive"] = round(float(r.ratio_to_naive), 4)
     (OUT / "metrics.json").write_text(json.dumps(metrics, indent=2))
 
-    run_id = log_to_mlflow(reg, clf, dev, picks, d)
-    (OUT / "mlflow_run_id.txt").write_text(run_id)
+    tb_dir = tracking.log_tensorboard(
+        reg, clf, dev, picks, git_commit=git_commit(), specs_sha256=sha256(SPECS_CSV)
+    )
     print("selected on validation:", picks)
-    print("MLflow parent run:", run_id, "in", EXPERIMENT)
+    print("TensorBoard run:", tb_dir, " (tensorboard --logdir runs/tb)")
     print("files in", OUT.resolve())
     if args.export:
         manifest = export_champions(

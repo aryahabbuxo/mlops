@@ -124,7 +124,6 @@ stages:
       - results/device_models/low_wind_results.csv
       - results/device_models/regression_results.csv
       - results/device_models/selection.json
-      - results/device_models/mlflow_run_id.txt
       - serve
       - RESULTS.md
     metrics:

@@ -353,22 +353,22 @@ stages:
       nfiles: 8
     - path: make_results_md.py
       hash: md5
-      md5: 8164534b87f102082fce4a6dabd905df
-      size: 7488
+      md5: 8c4219a55f8922edf3b3d9d3b5e24341
+      size: 7421
     - path: specs/device_specs.csv
       hash: md5
       md5: 11200c9ef4ee6cf73490dec0c080cd90
       size: 1875
     - path: src/solarwind/devices
       hash: md5
-      md5: dcb903e793a9bcd8951eaacd18e86e91.dir
-      size: 93067
-      nfiles: 10
+      md5: 940bf854636ea4e2e4d1e15a47fea5de.dir
+      size: 179139
+      nfiles: 16
     outs:
     - path: RESULTS.md
       hash: md5
-      md5: 798a91b46224edb13c5390bf5dfcc687
-      size: 5001
+      md5: 4c484f8e64736566bd6f4b2379f22ffa
+      size: 4971
     - path: results/device_models/device_error.csv
       hash: md5
       md5: 75eb530f0e07061df53309b6f7baf231
@@ -381,10 +381,6 @@ stages:
       hash: md5
       md5: 0a2573eb4b70d9a6d874f5a91d6b4d3a
       size: 269
-    - path: results/device_models/mlflow_run_id.txt
-      hash: md5
-      md5: 17164929c69acde72e1b688ad7f5f612
-      size: 32
     - path: results/device_models/regression_results.csv
       hash: md5
       md5: 05272d180cb132e6bae816883c3864d3
@@ -395,6 +391,6 @@ stages:
       size: 103
     - path: serve
       hash: md5
-      md5: dee91f3c9190f51cc369a253955db1c8.dir
+      md5: 38a542bb3408c33d22b179259845cff1.dir
       size: 3119699
       nfiles: 5

@@ -37,6 +37,8 @@ train = [
     "mlflow==3.17.1",
     "scikit-learn==1.7.1",
     "skops==0.16.0",
+    "tensorboard==2.20.0",
+    "tensorboardX==2.6.4",
 ]
 tf = [
     "tensorflow-cpu==2.20.0",
