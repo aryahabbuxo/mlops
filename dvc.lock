@@ -394,3 +394,42 @@ stages:
       md5: 38a542bb3408c33d22b179259845cff1.dir
       size: 3119699
       nfiles: 5
+  train_lstm:
+    cmd: python -m solarwind.devices.lstm
+    deps:
+    - path: config/sites.csv
+      hash: md5
+      md5: a18e739ff87bc572c71b91656fd7d487
+      size: 723
+    - path: data/raw/nasa
+      hash: md5
+      md5: 8d414c53fb83b7022985ddb9377effcb.dir
+      size: 684533
+      nfiles: 8
+    - path: src/solarwind/devices
+      hash: md5
+      md5: 4ef0afa11635e461ff91ded52b56cb77.dir
+      size: 235157
+      nfiles: 18
+    outs:
+    - path: results/lstm/decision.json
+      hash: md5
+      md5: a75f34f18002411d445f291774fb6768
+      size: 1034
+    - path: results/lstm/leaderboard.md
+      hash: md5
+      md5: 0c9bc9fb509cc7f855a024ae7981909e
+      size: 833
+    - path: results/lstm/lstm_results.csv
+      hash: md5
+      md5: 44a2bc9efdde5a05974dd5a04d501995
+      size: 3073
+    - path: results/lstm/metrics.json
+      hash: md5
+      md5: 2b739d7cc69a277461a46e0b8a2f29b9
+      size: 169
+    - path: serve_shadow
+      hash: md5
+      md5: e83407c4791bb886ac61ffc93af51864.dir
+      size: 208462
+      nfiles: 3

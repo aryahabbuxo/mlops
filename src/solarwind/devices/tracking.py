@@ -61,6 +61,14 @@ def log_hparams(logdir: Path, hparams: dict, metrics: dict[str, float]) -> None:
                 row.add_scalar(key, float(metrics[key]), 0)
 
 
+def log_text(root: Path | str, stamp: str, name: str, markdown: str) -> Path:
+    """A markdown note in the TEXT tab (run `<stamp>-<name>`, tag `<name>`)."""
+    folder = Path(root) / f"{stamp}-{name}"
+    with SummaryWriter(str(folder)) as writer:
+        writer.add_text(name, markdown, 0)
+    return folder
+
+
 def leaderboard_markdown(
     reg: pd.DataFrame, clf: pd.DataFrame, dev: pd.DataFrame, picks: dict
 ) -> str:

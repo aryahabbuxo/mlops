@@ -123,6 +123,14 @@ def test_leaderboard_text_is_ranked_on_validation(tables, tmp_path):
     assert "train" not in text
 
 
+def test_log_text_writes_a_note_to_the_text_tab(tmp_path):
+    folder = tracking.log_text(tmp_path, "t6", "lstm-leaderboard", "# hello\n\n| a |\n|---|\n| 1 |")
+    assert folder == tmp_path / "t6-lstm-leaderboard"
+    acc = EventAccumulator(str(folder))
+    acc.Reload()
+    assert acc.PluginTagToContent("text")
+
+
 def test_two_launches_do_not_collide(tables, tmp_path):
     for stamp in ("a", "b"):
         _log(tables, tmp_path, stamp)
