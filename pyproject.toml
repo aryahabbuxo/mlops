@@ -45,6 +45,8 @@ serve = [
     "fastapi==0.115.12",
     "httpx==0.28.1",
     "uvicorn[standard]==0.34.0",
+    "scikit-learn==1.7.1",
+    "skops==0.16.0",
 ]
 
 [project.scripts]
