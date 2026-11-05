@@ -161,14 +161,14 @@ class StubPredictor:
             prediction, devices = _wind_block(hub)
         shadow = None
         if compare:
-            shadow = {"algo": "lstm", "version": "stub", "prediction": prediction}
+            shadow = {"available": False, "reason": "shadow model not loaded (stub)"}
         return _envelope(
             kind,
             site,
             as_of,
             prediction,
             devices,
-            mode="snapshot",
+            mode="what-if" if perturb else "snapshot",
             fallback=False,
             algo="stub",
             shadow=shadow,
@@ -211,4 +211,8 @@ def get_predictor() -> Predictor:
     backend = os.getenv("PREDICTOR", "stub").lower()
     if backend == "stub":
         return StubPredictor()
+    if backend == "bundle":
+        from solarwind.devices.inference import BundlePredictor
+
+        return BundlePredictor(Path(os.getenv("SERVE_DIR", "serve")))
     raise ValueError(f"unknown PREDICTOR backend: {backend!r}")
