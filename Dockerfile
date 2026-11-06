@@ -19,7 +19,8 @@ FROM python:3.12-slim AS runtime
 
 ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONUNBUFFERED=1 \
-    PREDICTOR=stub \
+    PREDICTOR=bundle \
+    SERVE_DIR=/app/serve \
     LOG_LEVEL=INFO
 
 ARG GIT_COMMIT=uncommitted
@@ -29,6 +30,9 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 COPY config ./config
 COPY specs ./specs
+# The DVC-tracked serving bundle. CI runs `dvc pull serve` before build so this
+# directory exists in the context; the image never pulls or regenerates it.
+COPY serve ./serve
 
 RUN useradd --create-home --uid 1000 appuser && chown -R appuser /app
 USER appuser

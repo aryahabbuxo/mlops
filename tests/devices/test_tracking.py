@@ -6,10 +6,15 @@ from pathlib import Path
 
 import pandas as pd
 import pytest
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
-from tensorboard.plugins.hparams import plugin_data_pb2
 
-from solarwind.devices import tracking
+pytest.importorskip("tensorboard")
+
+from tensorboard.backend.event_processing.event_accumulator import (  # noqa: E402
+    EventAccumulator,
+)
+from tensorboard.plugins.hparams import plugin_data_pb2  # noqa: E402
+
+from solarwind.devices import tracking  # noqa: E402
 
 
 @pytest.fixture

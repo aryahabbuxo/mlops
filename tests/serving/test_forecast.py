@@ -29,14 +29,16 @@ def test_perturb_moves_the_prediction(client):
         json={"site": "pavagada", "as_of": AS_OF, "perturb": {"sun_scale": 1.5}},
     ).json()
     assert scaled["prediction"]["sunlight_kwh_m2"] > base["prediction"]["sunlight_kwh_m2"]
+    assert base["weather_used"]["mode"] == "snapshot"
+    assert scaled["weather_used"]["mode"] == "what-if"
 
 
-def test_compare_fills_shadow(client):
+def test_compare_shadow_reports_availability(client):
     body = client.post(
         "/v1/forecast", json={"site": "pavagada", "as_of": AS_OF, "compare": True}
     ).json()
     assert body["shadow"] is not None
-    assert body["shadow"]["algo"] == "lstm"
+    assert body["shadow"]["available"] is False
 
 
 def test_replay_returns_rows(client):

@@ -17,6 +17,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
 
@@ -100,6 +101,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="GreenOps Forecast API", version=API_VERSION, lifespan=lifespan)
 
+# The browser UI (served from a different origin) calls this API directly, so CORS must
+# allow it. CORS_ORIGINS is a comma-separated allowlist; "*" (the default) suits a public,
+# read-only forecast API with no cookies or credentials.
+_cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
+
 
 @app.middleware("http")
 async def add_request_id(request: Request, call_next: Callable[[Request], Awaitable]):
@@ -159,7 +171,7 @@ async def health() -> HealthResponse:
 async def ready(request: Request) -> JSONResponse:
     if not getattr(request.app.state, "ready", False):
         return JSONResponse(status_code=503, content={"ready": False, "models_loaded": 0})
-    loaded = len(request.app.state.predictor.info()["models"])
+    loaded = len(request.app.state.predictor.info().get("models", {}))
     return JSONResponse(status_code=200, content={"ready": True, "models_loaded": loaded})
 
 
@@ -170,7 +182,7 @@ async def version_info(request: Request) -> VersionResponse:
     except PackageNotFoundError:
         api_version = API_VERSION
     state = request.app.state
-    models = state.predictor.info()["models"] if getattr(state, "ready", False) else {}
+    models = state.predictor.info().get("models", {}) if getattr(state, "ready", False) else {}
     return VersionResponse(
         api_version=api_version,
         git_commit=getattr(state, "git_commit", None) or _git_commit(),
