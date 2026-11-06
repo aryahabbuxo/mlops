@@ -54,7 +54,7 @@ On sunlight test, ridge (0.5496) beat the chosen hgb (0.5751). We kept hgb becau
 | G6 robustness | missing day gives flagged persistence fallback; 5% input noise moves MAE +5.3% (sunlight), +4.3% (hub wind), PR-AUC -2.9% |
 | G7 honesty | claimed metrics match the measurement; thresholds fitted on training days; future data cannot change a forecast |
 
-A candidate that fails any gate cannot be promoted (`registry promote` refuses, `--force` overrides and is logged).
+A candidate that fails any gate cannot be promoted (`registry promote` refuses, `--force` overrides it and the output says "forced").
 
 ## 5. LSTM challenger (TensorFlow)
 
