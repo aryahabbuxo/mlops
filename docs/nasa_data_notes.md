@@ -1,6 +1,6 @@
 # NASA POWER daily weather: sites and grid-cell check
 
-Request: `community=re`, parameters `ALLSKY_SFC_SW_DWN,T2M,WS10M,WS50M`, daily, 2020-01-01 to 2026-09-30, CSV. Downloader: `python -m solarwind.data.nasa.download`, driven by `config/sites.csv`. Every number below was read from `data/processed/nasa_summary.csv`, written by the `validate_nasa` stage from the saved files in `data/raw/nasa/` (DVC-tracked, `data/raw/nasa.dvc`).
+Request: `community=re`, parameters `ALLSKY_SFC_SW_DWN,T2M,WS10M,WS50M`, daily, 2019-10-30 to 2026-09-30, CSV. Downloader: `python -m solarwind.data.nasa.download`, driven by `config/sites.csv`. Every number below was read from the saved files in `data/raw/nasa/` (DVC-tracked, `data/raw/nasa.dvc`).
 
 ## Sites
 
@@ -8,14 +8,14 @@ The sites are representative generation regions, not exact plant locations. Stat
 
 | Site | Source | lat, lon | MERRA-2 elevation (m) | First date | Last date | Rows | -999 (irradiance / T2M / WS10M / WS50M) | Bytes |
 |---|---|---|---|---|---|---|---|---|
-| pavagada | solar | 14.0145, 77.3647 | 617.04 | 2020-01-01 | 2026-09-30 | 2465 | 0 / 0 / 0 / 0 | 83403 |
-| raichur | solar | 16.2, 77.35 | 370.49 | 2020-01-01 | 2026-09-30 | 2465 | 0 / 0 / 0 / 0 | 83378 |
-| kalaburagi | solar | 17.3, 76.8 | 521.17 | 2020-01-01 | 2026-09-30 | 2465 | 0 / 0 / 0 / 0 | 83325 |
-| mysuru | solar | 12.3, 76.65 | 714.58 | 2020-01-01 | 2026-09-30 | 2465 | 0 / 0 / 0 / 0 | 83352 |
-| chitradurga | wind | 14.2396, 76.4521 | 696.32 | 2020-01-01 | 2026-09-30 | 2465 | 0 / 0 / 0 / 0 | 83413 |
-| gadag | wind | 15.4, 75.6 | 608.06 | 2020-01-01 | 2026-09-30 | 2465 | 0 / 0 / 0 / 0 | 83546 |
-| koppal | wind | 15.35, 76.15 | 546.24 | 2020-01-01 | 2026-09-30 | 2465 | 0 / 0 / 0 / 0 | 83471 |
-| hassan | wind | 13.4, 76.1 | 812.04 | 2020-01-01 | 2026-09-30 | 2465 | 0 / 0 / 0 / 0 | 83360 |
+| pavagada | solar | 14.0145, 77.3647 | 617.04 | 2019-10-30 | 2026-09-30 | 2528 | 0 / 0 / 0 / 0 | 85567 |
+| raichur | solar | 16.2, 77.35 | 370.49 | 2019-10-30 | 2026-09-30 | 2528 | 0 / 0 / 0 / 0 | 85547 |
+| kalaburagi | solar | 17.3, 76.8 | 521.17 | 2019-10-30 | 2026-09-30 | 2528 | 0 / 0 / 0 / 0 | 85491 |
+| mysuru | solar | 12.3, 76.65 | 714.58 | 2019-10-30 | 2026-09-30 | 2528 | 0 / 0 / 0 / 0 | 85510 |
+| chitradurga | wind | 14.2396, 76.4521 | 696.32 | 2019-10-30 | 2026-09-30 | 2528 | 0 / 0 / 0 / 0 | 85573 |
+| gadag | wind | 15.4, 75.6 | 608.06 | 2019-10-30 | 2026-09-30 | 2528 | 0 / 0 / 0 / 0 | 85699 |
+| koppal | wind | 15.35, 76.15 | 546.24 | 2019-10-30 | 2026-09-30 | 2528 | 0 / 0 / 0 / 0 | 85629 |
+| hassan | wind | 13.4, 76.1 | 812.04 | 2019-10-30 | 2026-09-30 | 2528 | 0 / 0 / 0 / 0 | 85517 |
 
 ## Grid-cell check
 
