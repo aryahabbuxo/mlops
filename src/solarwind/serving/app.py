@@ -17,6 +17,7 @@ from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from loguru import logger
 
@@ -99,6 +100,17 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="GreenOps Forecast API", version=API_VERSION, lifespan=lifespan)
+
+# The browser UI (served from a different origin) calls this API directly, so CORS must
+# allow it. CORS_ORIGINS is a comma-separated allowlist; "*" (the default) suits a public,
+# read-only forecast API with no cookies or credentials.
+_cors_origins = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
+)
 
 
 @app.middleware("http")
