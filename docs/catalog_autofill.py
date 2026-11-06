@@ -8,6 +8,7 @@ n_files, n_rows, n_cols (first sheet / csv, raw read) and sha256_all_files
 n_rows / n_cols are left alone so hand-verified values are never overwritten.
 Rows whose path is missing are left untouched and reported.
 """
+
 import csv
 import hashlib
 import os
@@ -67,7 +68,8 @@ def main(catalog, root="."):
         data_files = [f for f in files if os.path.splitext(f)[1].lower() in DATA_EXT]
         r["n_files"] = str(len(files))
         r["sha256_all_files"] = hashlib.sha256(
-            "".join(sha256_file(f) for f in files).encode()).hexdigest()
+            "".join(sha256_file(f) for f in files).encode()
+        ).hexdigest()
         shapes = [s for s in (shape_of(f) for f in data_files) if s]
         if shapes:
             if r["n_rows"] in ("", TO_FILL):
