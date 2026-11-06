@@ -1,141 +1,87 @@
-# SolarWind Advisor
+# Billing Agent + Billing Sandbox
 
-Data pipeline and (later) models for **SolarWind Advisor**, a drift-aware, explainable platform that
-gives households a realistic estimate of what solar or wind could do for them. This repository
-currently covers Phase 1 (development and reproducibility) of course AI252TA, Machine Learning
-Operations, RV College of Engineering: acquiring, validating and versioning the data.
+Your part of the multi-agent customer-support market described in the master
+project context. This runs standalone right now — no API keys, no
+dependencies, nothing to install beyond Python 3.
 
-The pilot state is Karnataka. The target is daily state-level solar and wind generation from the
-Central Electricity Authority (CEA); the features are NASA POWER daily weather at representative
-generation regions. See [HANDOFF.md](HANDOFF.md) for the full project context, decisions and
-open items.
+## Files
 
-## Repository layout
+| File              | What it does                                                          |
+|-------------------|------------------------------------------------------------------------|
+| `sandbox.py`      | Fake billing system. Holds hidden ground-truth state (payment/refund/invoice status) for 3 example orders, and exposes `check_*` (read) and action tools (write) — the agent never touches state directly. |
+| `capability.py`   | The capability card Billing broadcasts to the other agents, plus keyword weights used for a quick rule-based confidence estimate. |
+| `bidding.py`      | `estimate_raw_confidence()` + the exact bid formula from the master doc (`load_penalty`, `urgency_weight`, `final_bid`). |
+| `negotiation.py`  | PROPOSE / COUNTER / ACCEPT / REJECT message builders, bounded to 3 rounds, plus a `MockTechnicalAgent` stand-in for your teammate's not-yet-built agent. |
+| `llm_client.py`   | Empty hook — wire this up to Ollama/vLLM/an API later. Nothing depends on it yet. |
+| `agent.py`        | `BillingAgent` class — ties everything together: `submit_bid → investigate → diagnose → execute → negotiate (if needed) → final_statement`. |
+| `demo.py`         | Runs 3 test tickets end-to-end and prints the whole trace, including the exact worked example ticket from the master doc (section 20). |
 
-| Path | Contents |
-|---|---|
-| `src/solarwind/` | Installable Python package (src layout) |
-| `src/solarwind/config/` | Pydantic settings (paths, URLs, date windows) and the validated site model |
-| `src/solarwind/data/cea/` | CEA downloader, workbook parser and daily Karnataka table build |
-| `src/solarwind/data/idp/`, `full_series.py` | India Data Portal loader and the combined IDP + CEA Karnataka series |
-| `src/solarwind/data/nasa/` | NASA POWER downloader, loader, validation and per-site summary |
-| `src/solarwind/features/` | Calendar, weather, lag and rolling features, the time-based split and the schema gate |
-| `config/sites.csv` | The generation regions used to build state weather |
-| `data/` | Raw and processed data. **Tracked by DVC, never by Git** |
-| `tests/` | Pytest suite mirroring the package layout |
-| `scripts/` | One-off exploration scripts (not part of the pipeline) |
-| `notebooks/` | Exploration notebooks (committed with outputs cleared) |
-| `docs/` | Data notes and evidence (`cea_report_layout.md`, `nasa_data_notes.md`, portal screenshot) |
-| `dvc.yaml`, `dvc.lock` | The reproducible pipeline and its recorded hashes |
-| `data/raw/*.dvc` | DVC pointer files for the raw data folders |
-
-## Setup
-
-The team target is **Python 3.12** (`.python-version`). The interpreter used on the developer
-laptop so far is the system Python 3.13; this mismatch is flagged, not fixed.
+## Run it
 
 ```bash
-python -m venv .venv
-.venv/Scripts/activate            # Windows; on Linux/macOS: source .venv/bin/activate
-python -m pip install -r requirements.txt
-python -m pip install -e . --no-deps
+cd billing_agent
+python3 demo.py
 ```
 
-`requirements.txt` is the exact pinned list and must match `pyproject.toml` (a test checks this).
-On Windows set `PYTHONIOENCODING=utf-8` before running the CEA scripts; the reports contain
-Devanagari text.
+You should see, for each ticket: the bid math, the diagnosis, the sandbox
+state before/after, any negotiation transcript, and a final statement — this
+final statement + state changes are what your vetting layer (cosine
+similarity + LLM judge) will later score.
 
-All commands run from the repository root. Settings can be overridden with `SOLARWIND_*`
-environment variables (for example `SOLARWIND_DATA_DIR`).
+## The 3 test scenarios (mirrors master doc section 13)
 
-## Data sources
+Same *kind* of complaint ("where's my refund / order"), three different root
+causes, so the agent has to actually investigate instead of pattern-matching
+the ticket text:
 
-Raw files are not in Git. Dates below are the file modification times of the files on disk.
+- **O-1001** — refund genuinely stuck at the gateway → agent releases it.
+- **O-1002** — refund auto-rejected (bad bank details) → agent can't
+  self-fix, flags for manual review.
+- **O-1003** — refund already processed correctly → this isn't a billing
+  problem at all, so the agent proposes handing the technical half
+  (dashboard visibility) to the Technical Agent via PROPOSE/ACCEPT.
 
-| Source | What | Coverage | Access |
-|---|---|---|---|
-| CEA Daily Renewable Generation Report, `gen-re.cea.gov.in` | State-wise daily solar and wind generation (MU, net), one Excel report per day | 2024-06-30 to 2026-10-08; 776 files downloaded on 2026-10-10 | `python -m solarwind.data.cea.download` |
-| India Data Portal, Daily Renewable Energy Generation (origin CEA) | State-wise daily wind and solar generation (MU), same quantity as the CEA Generation scope, covering earlier dates | 2019-10-30 to 2025-04-27 (Karnataka: 1,928 rows, 79 missing days) | files placed manually in `data/raw/idp/` (CSV and codebook) |
-| NASA POWER, `power.larc.nasa.gov` | Daily irradiance, temperature and wind (`ALLSKY_SFC_SW_DWN`, `T2M`, `WS10M`, `WS50M`), community `re` | 2019-10-30 to 2026-09-30, one file per site, downloaded on 2026-10-10 | `python -m solarwind.data.nasa.download` |
+## What to build next (in this order)
 
-Licences and terms of use for these sources are not recorded in this repository yet; confirm
-them before redistributing any raw data. Per-site NASA facts (dates, rows, missing values, file
-sizes) are in `data/processed/nasa_summary.csv`.
+1. **More order scenarios** in `sandbox.py` — right now there are 3. Add
+   more edge cases (missing invoice, duplicate charge, subscription
+   double-billed, etc.) so the demo isn't trivially memorized.
+2. **Swap keyword confidence for a real LLM call.** In `bidding.py`,
+   replace `estimate_raw_confidence()`'s body with a prompt like:
+   *"On a scale of 0-1, how confident are you (a billing specialist agent)
+   that you can resolve this ticket: <ticket text>? Only output a number."*
+   sent through `llm_client.call_llm()`.
+3. **Swap the rule-based `diagnose()` for an LLM call**, once you're
+   comfortable the rule-based version proves the pipeline works. Give the
+   model the investigation results (`payment`, `refund`, `invoice` dicts)
+   and ask it to pick from your defined tool names — don't let it invent
+   new tools.
+4. **Replace `MockTechnicalAgent`** with a real call to your teammate's
+   Technical Agent once it exists (likely an HTTP/WebSocket call once you
+   standardize the interface — section 26 of the master doc).
+5. **Expose this as a service** (e.g. a small FastAPI app with a
+   `POST /bid` and `POST /handle_ticket` endpoint) so the hackathon's
+   central auction/dispatch layer can call into it — this is the
+   "modular enough to plug in later" requirement from the master doc.
 
-### Weather sites and the equal-weight simplification
+## What this deliberately does NOT do (per the master doc's non-goals)
 
-`config/sites.csv` lists **representative generation regions, not exact plant locations**. State
-weather for a source type is the plain average of its sites. Weights are equal (they sum to 1
-per state and source type) because real capacity shares are not known; this is a deliberate
-simplification. Each site must be a distinct NASA grid cell, which the pipeline enforces.
+- No real payments, no real database, no message queue.
+- No central orchestrator deciding "this ticket is billing's" — the bid
+  formula is the only thing that decides that, and in the full system it
+  competes against Technical's and Retention's bids.
+- No finalized universal JSON schema for negotiation/tickets — this is
+  intentionally left easy to reshape once the team agrees on one.
 
-## Running the pipeline
+## Baby-steps setup (if you're doing this from a completely empty machine)
 
-```bash
-python -m dvc repro               # runs parse_cea, build_full_series, build_capacity, validate_nasa and featurize
-python -m dvc status              # "Data and pipelines are up to date" when nothing changed
-```
-
-| Stage | Command | Reads | Writes |
-|---|---|---|---|
-| `parse_cea` | `python -m solarwind.data.cea.build_daily` | `data/raw/cea` | `data/processed/karnataka_daily.csv`, `flags.txt`, `parse_failures.txt` |
-| `build_full_series` | `python -m solarwind.data.full_series` | `data/raw/idp`, `data/processed/karnataka_daily.csv` | `data/processed/karnataka_daily_full.csv`, `idp_flags.txt` |
-| `build_capacity` | `python -m solarwind.data.capacity` | `config/capacity_knots.csv` | `data/processed/karnataka_capacity_monthly.csv` |
-| `validate_nasa` | `python -m solarwind.data.nasa.summary` | `data/raw/nasa`, `config/sites.csv` | `data/processed/nasa_summary.csv` |
-| `featurize` | `python -m solarwind.features.build` | `data/processed/karnataka_daily_full.csv`, `karnataka_capacity_monthly.csv`, `data/raw/nasa`, `config/sites.csv` | `data/processed/features.csv` |
-
-`parse_cea` fails loudly on structural problems and lists rejected files in
-`parse_failures.txt`. `validate_nasa` fails if a site file is missing or invalid, if a file in
-`data/raw/nasa` is not listed in `config/sites.csv`, or if two sites share a grid cell.
-
-## Features and the train/test split
-
-`featurize` builds `data/processed/features.csv`: one row per day that has a target and complete
-NASA weather history, with a `split` column. Targets are daily capacity factors `wind_cf` and
-`solar_cf` (MU x 1000 / (MW x 24)) from the monthly capacity series; the raw MU and capacity
-columns are kept. The split is **time-based, never random**: train is 2019-10-30 to 2024-12-31
-(first row 2019-11-05, after the weather warm-up) and test is 2025-01-01 to 2026-09-30 (NASA
-weather ends on 2026-09-30). The windows, the feature groups (calendar, weather averages, wind shear, irradiance x
-temperature, weather and target lags and rolling means) and their lags and windows are all in
-`Settings` (`src/solarwind/config/settings.py`) and can be overridden with `SOLARWIND_*`
-variables; each group can be switched off. Target lags and rolling means use past days only.
-A schema gate fails the stage on missing or unexpected columns, wrong dtypes, duplicate or
-unsorted dates, NaN beyond the configured allowance, or any split-boundary violation.
-
-## Tests and linting
-
-```bash
-python -m pytest                  # tests needing raw data skip themselves when it is absent
-python -m ruff check .
-python -m ruff format --check .
-```
-
-## Data versioning workflow
-
-- Start of work: `git pull`, then `dvc pull`.
-- Changed or added data: run `dvc add data/raw/<folder>` (or `dvc repro` for processed data),
-  commit the `.dvc` pointer and `dvc.lock`, then `dvc push`.
-- Never commit anything under `data/` except `.gitignore` and `.dvc` pointer files.
-- The DVC remote is currently a local folder on one laptop. Teammates cannot `dvc pull` until it
-  is replaced by a shared remote and that change is committed.
-
-## Conventions
-
-Small single-purpose commits with conventional messages (`feat`, `fix`, `refactor`, `chore`,
-`docs`, `test`). The raw layer is immutable; cleaning and flagging happen in the processed layer
-and are logged, not silently fixed.
-
-## Devices layer
-
-Weather is real (NASA POWER, 8 Karnataka sites). Device output is generated from published specs
-and formulas in `specs/device_specs.csv` and `devices.py`: Sun King Home 60 lamp, Giacomini GSUN 200
-solar water heater (100 L tank), Bergey Excel 10 turbine (30 m hub).
-
-Models estimate tomorrow's sunlight and hub-height wind, plus a low-wind alert. They are compared
-with naive, seasonal and persistence planners, chosen on 2024 and reported once on 2025 onward.
-
-    python train_device_models.py      # trains, logs to TensorBoard (runs/tb)
-    python make_results_md.py          # writes RESULTS.md from the result files
-    pytest tests/devices -q            # 26 tests: physics, specs vs CSV, leakage, split
-    dvc repro train_device_models      # same as the first two, tracked by DVC
-    tensorboard --logdir runs/tb
+1. Install Python 3.10+ if you don't have it (`python3 --version` to check).
+2. Unzip/copy this `billing_agent/` folder wherever you keep your code.
+3. Open a terminal, `cd` into `billing_agent/`.
+4. Run `python3 demo.py`. If you see the 3 ticket traces printed, you're
+   done — the pipeline works.
+5. Open the files in this order to understand the flow: `sandbox.py` →
+   `capability.py` → `bidding.py` → `agent.py` → `negotiation.py` →
+   `demo.py`.
+6. Start editing `sandbox.py` first (add your own order scenarios), then
+   re-run `demo.py` after every change to make sure nothing breaks.
