@@ -20,7 +20,9 @@ Conventions
 
 from __future__ import annotations
 
+import copy
 import os
+from collections.abc import Callable
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Protocol
@@ -28,6 +30,7 @@ from typing import Protocol
 import numpy as np
 import pandas as pd
 from loguru import logger
+from sklearn.metrics import average_precision_score
 
 from solarwind.devices import bundle as bundle_mod
 from solarwind.devices import pipeline as pipe
@@ -39,6 +42,7 @@ LAMP_WARMUP_DAYS = 7  # real days simulated before tomorrow so the battery state
 SUNLIGHT_MAX = 12.0  # gate G3: sane output ranges
 HUB_WIND_MAX = 40.0
 INPUT_COLS = ["sun", "T2M", "WS10M", "WS50M"]
+TASK_KIND = {"sunlight": "solar", "hubwind": "wind", "lowwind": "wind"}
 
 
 class Shadow(Protocol):
@@ -329,6 +333,76 @@ class BundlePredictor:
                     "error": round(abs(f - a), 3),
                 }
             )
+        return out
+
+    # ---------- scoring (used by the quality gates) ----------
+    def with_weather(self, transform: Callable[[pd.DataFrame], pd.DataFrame]) -> BundlePredictor:
+        """Same models, other weather. `transform` maps each site's daily table (index = date,
+        columns sun/T2M/WS10M/WS50M) to a new one. This predictor is not changed."""
+        other = copy.copy(self)
+        other._by_site = {k: transform(v.copy()) for k, v in self._by_site.items()}
+        other._frames = {}
+        return other
+
+    def _scored(self, task: str, split: str, truth: BundlePredictor | None = None) -> pd.DataFrame:
+        """One row per scored day: site, date, raw model output (before any clamp), the truth
+        and the naive baseline. Same rows as training (complete features, known target).
+        With `truth`, inputs come from this predictor but truth and baseline from `truth`."""
+        truth = truth or self
+        kind = TASK_KIND[task]
+        parts = []
+        for key, info in self._sites.items():
+            if info["kind"] != kind or key not in self._by_site:
+                continue
+            mine, ref = self._site_frame(kind, key), truth._site_frame(kind, key)
+            raw = self._predict(task, key, mine)
+            if task == "lowwind":
+                y, base = ref["low_next"], ref["low_today"].astype(float)
+            else:
+                y, base = ref["target"], ref["today"]
+            keep = raw.notna() & y.notna() & base.notna() & (ref["split"] == split)
+            parts.append(
+                pd.DataFrame({"site": key, "date": ref["date"], "raw": raw, "y": y, "base": base})[
+                    keep
+                ]
+            )
+        if not parts:
+            return pd.DataFrame(columns=["site", "date", "raw", "y", "base"])
+        return pd.concat(parts, ignore_index=True)
+
+    def evaluate(self, split: str = "val", *, truth: BundlePredictor | None = None) -> dict:
+        """Score every task on the bundle's own snapshot (`split` = train, val or test).
+
+        Regressors: mae, baseline_mae (persistence), ratio_to_persistence, per_site_mae.
+        Low-wind: pr_auc, baseline_pr_auc (yesterday's flag), base_rate. All: rows, raw_min,
+        raw_max (the model output BEFORE the serving clamp, so range bugs cannot hide).
+        """
+        out: dict[str, dict] = {}
+        for task in bundle_mod.TASKS:
+            d = self._scored(task, split, truth)
+            if d.empty:
+                out[task] = {"rows": 0}
+                continue
+            r: dict = {
+                "rows": int(len(d)),
+                "raw_min": float(d["raw"].min()),
+                "raw_max": float(d["raw"].max()),
+            }
+            if task == "lowwind":
+                two = d["y"].nunique() > 1
+                r["pr_auc"] = float(average_precision_score(d["y"], d["raw"])) if two else np.nan
+                r["baseline_pr_auc"] = (
+                    float(average_precision_score(d["y"], d["base"])) if two else np.nan
+                )
+                r["base_rate"] = float(d["y"].mean())
+            else:
+                err = (d["raw"] - d["y"]).abs()
+                base = (d["base"] - d["y"]).abs()
+                r["mae"] = float(err.mean())
+                r["baseline_mae"] = float(base.mean())
+                r["ratio_to_persistence"] = r["mae"] / r["baseline_mae"]
+                r["per_site_mae"] = {k: float(v) for k, v in err.groupby(d["site"]).mean().items()}
+            out[task] = r
         return out
 
     # ---------- info ----------

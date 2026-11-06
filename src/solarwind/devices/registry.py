@@ -13,8 +13,9 @@ Commands (from the repo root, after `dvc repro train_device_models` has written 
     python -m solarwind.devices.registry rollback [--task sunlight]
     python -m solarwind.devices.registry materialize --out serve
 
-`promote` refuses a candidate that is worse than the champion on validation by more than
-TOLERANCE (gate G2). The full gate set (M5) calls the same `check_regression`.
+`register` runs the quality gates (gates.py, G1-G7) on every new version and tags it
+gates=passed|failed. `promote` refuses a version whose gates failed, and one that is worse than
+the champion on validation by more than TOLERANCE; `--force` overrides both (and says so).
 """
 
 from __future__ import annotations
@@ -32,18 +33,13 @@ import mlflow
 from mlflow import MlflowClient
 
 from solarwind.devices import bundle
+from solarwind.devices.gates import PRIMARY, TOLERANCE, check_regression  # noqa: F401
 
 os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")  # quiet CLI output
 TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
 EXPERIMENT = "greenops-registry"
 CHAMPION, CHALLENGER, PREVIOUS = "champion", "challenger", "previous"
-TOLERANCE = 0.02  # a candidate may be at most 2% worse than the champion on validation
-# task -> (validation metric, True when lower is better)
-PRIMARY = {
-    "sunlight": ("val_mae", True),
-    "hubwind": ("val_mae", True),
-    "lowwind": ("val_pr_auc", False),
-}
+RUN_GATES = True  # register() runs the quality gates; promote() then requires gates=passed
 
 
 class RegistryError(RuntimeError):
@@ -85,16 +81,21 @@ def _metrics(mv) -> dict[str, float]:
 
 
 # ---------- register ----------
-def register(serve_dir: Path | str = "serve") -> dict[str, dict]:
+def register(serve_dir: Path | str = "serve", *, run_gates: bool | None = None) -> dict[str, dict]:
     """Register the models in a bundle as new versions (an unchanged model is not duplicated).
 
     The first version of a task becomes the champion; later ones become the challenger.
+    With gates on (default), every version without a gate result (new, or registered before the
+    gates existed) is checked and tagged gates=passed|failed.
     """
+    run_gates = RUN_GATES if run_gates is None else run_gates
     serve = Path(serve_dir)
     manifest = json.loads((serve / "manifest.json").read_text(encoding="utf-8"))
     client = _client()
     mlflow.set_experiment(EXPERIMENT)
     result = {}
+    report = None
+    champions = {t: _alias_version(client, model_name(t), CHAMPION) for t in bundle.TASKS}
     for task in bundle.TASKS:
         entry = manifest["tasks"][task]
         name = model_name(task)
@@ -114,7 +115,40 @@ def register(serve_dir: Path | str = "serve") -> dict[str, dict]:
         else:
             role = CHAMPION
         result[task] = {"version": int(mv.version), "created": created, "role": role}
+        if run_gates and (created or "gates" not in mv.tags):
+            if report is None:
+                report = _run_gates(serve, champions, manifest)
+            result[task]["gates"] = _tag_gates(client, name, mv.version, report, task)
+        elif run_gates:
+            result[task]["gates"] = mv.tags.get("gates")
     return result
+
+
+def _run_gates(serve: Path, champions: dict, manifest: dict):
+    """G1-G7 on the bundle, with each task's champion (when it is a different model) for G2."""
+    from solarwind.devices import gates
+
+    rivals = {
+        t: _metrics(c)
+        for t, c in champions.items()
+        if c is not None and c.tags.get("fingerprint") != fp(manifest["tasks"][t])
+    }
+    return gates.check(serve, rivals)
+
+
+def _tag_gates(client: MlflowClient, name: str, version: str, report, task: str) -> str:
+    failed = report.failed(task)
+    verdict = "failed" if failed else "passed"
+    detail = "; ".join(f"{c.gate} {c.name} ({c.task}): {c.detail}" for c in failed)
+    tags = {
+        "gates": verdict,
+        "gates_failed": ",".join(sorted({c.gate for c in failed})),
+        "gates_detail": detail[:900],
+        "gates_at": datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    for key, value in tags.items():
+        client.set_model_version_tag(name, version, key, value or "-")
+    return verdict if not failed else f"failed: {tags['gates_failed']}"
 
 
 def fp(entry: dict) -> str:
@@ -150,22 +184,6 @@ def _create_version(client, serve: Path, manifest: dict, task: str, entry: dict)
     return client.get_model_version(name, mv.version)
 
 
-# ---------- gate G2: no regression ----------
-def check_regression(task: str, candidate: dict, champion: dict) -> tuple[bool, str]:
-    """Is the candidate within TOLERANCE of the champion on the validation metric?"""
-    metric, lower_is_better = PRIMARY[task]
-    new, old = float(candidate[metric]), float(champion[metric])
-    if lower_is_better:
-        limit = old * (1 + TOLERANCE)
-        ok = new <= limit
-        text = f"{metric} {new:.4f} vs champion {old:.4f} (limit {limit:.4f}, lower is better)"
-    else:
-        limit = old * (1 - TOLERANCE)
-        ok = new >= limit
-        text = f"{metric} {new:.4f} vs champion {old:.4f} (limit {limit:.4f}, higher is better)"
-    return ok, text
-
-
 # ---------- promote / rollback ----------
 def promote(
     task: str | None = None, version: int | None = None, *, force: bool = False
@@ -191,10 +209,14 @@ def promote(
             continue
         verdict = "forced"
         if champ is not None and not force:
+            if RUN_GATES and cand.tags.get("gates") != "passed":
+                state = cand.tags.get("gates") or "not run (run `register` first)"
+                why = cand.tags.get("gates_detail", "")
+                raise RegistryError(f"{t}: BLOCKED. quality gates {state}. {why}".rstrip(". "))
             ok, text = check_regression(t, _metrics(cand), _metrics(champ))
             if not ok:
                 raise RegistryError(f"{t}: BLOCKED. {text}")
-            verdict = f"passed: {text}"
+            verdict = f"passed: gates G1-G7 and {text}"
         if champ is not None:
             client.set_registered_model_alias(name, PREVIOUS, champ.version)
         client.set_registered_model_alias(name, CHAMPION, cand.version)
@@ -254,6 +276,7 @@ def status() -> dict[str, list[dict]]:
                 "sha256": v.tags.get("sha256", "")[:8],
                 "metrics": _metrics(v),
                 "git_commit": v.tags.get("git_commit"),
+                "gates": v.tags.get("gates"),
             }
             for v in _versions(client, name)
         ]
@@ -315,15 +338,16 @@ def _print_status(data: dict[str, list[dict]]) -> None:
             tag = ",".join(v["aliases"]) or "-"
             metric = PRIMARY[task][0]
             val = v["metrics"].get(metric, float("nan"))
-            head = f"  v{v['version']:<3} {tag:<20} {v['algo']:<9}"
-            print(f"{head} {metric}={val:<8.4f} {v['sha256']}")
+            head = f"  v{v['version']:<3} {tag:<20} {v['algo']:<12}"
+            print(f"{head} {metric}={val:<8.4f} gates={v['gates'] or '-':<7} {v['sha256']}")
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
-    p = sub.add_parser("register", help="register serve/ as new versions")
+    p = sub.add_parser("register", help="register serve/ as new versions (and run the gates)")
     p.add_argument("--serve", default="serve")
+    p.add_argument("--no-gates", action="store_true", help="skip the quality gates")
     sub.add_parser("status", help="show versions and aliases")
     p = sub.add_parser("promote", help="challenger -> champion (blocked if worse than champion)")
     p.add_argument("--task", choices=bundle.TASKS)
@@ -337,9 +361,11 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         if args.cmd == "register":
-            for task, r in register(args.serve).items():
+            result = register(args.serve, run_gates=not args.no_gates)
+            for task, r in result.items():
                 state = "new" if r["created"] else "unchanged"
-                print(f"{task:<9} v{r['version']} {state} -> {r['role']}")
+                gate = f"  gates {r['gates']}" if r.get("gates") else ""
+                print(f"{task:<9} v{r['version']} {state} -> {r['role']}{gate}")
         elif args.cmd == "status":
             _print_status(status())
         elif args.cmd == "promote":

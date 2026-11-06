@@ -58,6 +58,8 @@ def reg(tmp_path, monkeypatch):
     """A throw-away registry (sqlite + artifacts in tmp) so tests never touch mlflow.db."""
     monkeypatch.chdir(tmp_path)
     monkeypatch.setattr(registry, "TRACKING_URI", f"sqlite:///{tmp_path / 'test.db'}")
+    # these tests use made-up metrics, so the gates (which measure for real) are off here
+    monkeypatch.setattr(registry, "RUN_GATES", False)
     return registry
 
 
