@@ -19,6 +19,7 @@ from pathlib import Path
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from solarwind.config import get_settings, load_sites
@@ -226,3 +227,11 @@ async def replay(request: Request, site: str, start: date, end: date) -> list[Re
     if site not in state.site_kinds:
         raise UnknownSiteError(site)
     return [ReplayItem(**item) for item in state.predictor.replay(site, start, end)]
+
+
+# The browser UI is served as static files from WEB_DIR when present, mounted last so the API
+# routes above always win; GET / returns index.html (html=True). When WEB_DIR is absent this is
+# a pure JSON API, so the mount is optional and never a hard dependency.
+_web_dir = Path(os.getenv("WEB_DIR", "web"))
+if _web_dir.is_dir():
+    app.mount("/", StaticFiles(directory=_web_dir, html=True), name="web")
