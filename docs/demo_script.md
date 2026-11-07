@@ -6,7 +6,7 @@ About 7 minutes, no slides. Two people: **A** drives the page, **B** drives the 
 
 | Check | How | Done |
 |---|---|---|
-| Live page opens | `LIVE_URL`, loads in under 5 s, header says "online" | |
+| Live page opens | https://greenops-api-latest.onrender.com: open it 3 minutes early (free host, cold start about a minute), header says "online" | |
 | Local copy ready (backup 1) | Terminal 1: `$env:PREDICTOR="bundle"; $env:SERVE_DIR="serve"; uvicorn solarwind.serving.app:app --port 8001`, wait for startup, then open `file:///C:/dev/mlops/web/index.html?api=http://localhost:8001` | |
 | Recording ready (backup 2) | `demo_fallback.mp4` on the desktop, plays | |
 | Terminal 2 in the repo | `cd C:\dev\mlops; .venv\Scripts\activate` | |
@@ -33,7 +33,7 @@ Open these views as bookmarks so nothing is typed live:
 | 4:30 | B | `python -m solarwind.devices.gates make-bad --serve serve --out serve_bad --mode scaled` then `python -m solarwind.devices.gates check --serve serve_bad --champion serve` | "Now a deliberately broken model: a kWh to Wh unit bug. It fails G1, G2 and G3 and the command exits with an error. In CI that stops the build." |
 | 5:15 | B | `python -m solarwind.devices.registry status` | "The registry keeps champion, challenger and previous. The champion was not touched; a failed candidate cannot be promoted, and `rollback` restores the previous one." |
 | 5:40 | B | TensorBoard, TEXT tab leaderboard, then the LSTM runs | "We were asked to consider an LSTM in TensorFlow. We fixed the rule first: promote only if the 5-seed mean validation error is at least 2% lower. It was, by 3.1% and 2.9%. We still serve it only as a shadow, because it needs TensorFlow in the image and has no device-level comparison yet. The page can show it beside the main model." |
-| 6:15 | B | GitHub Actions run, then the image or Space | "Every push runs lint and tests, the same gate command, a Docker smoke test; the image is published only from `main`. The container carries the pinned bundle, so deploy never retrains and needs no secrets." |
+| 6:15 | B | GitHub Actions run, then the live Render URL | "Every push runs lint and tests, the same gate command, a Docker smoke test; the image is published only from `main`. The container carries the pinned bundle, so deploy never retrains and needs no secrets." |
 | 6:45 | A | Page | "An outlook, not a promise: eight sites, one day ahead, honest about its margin." |
 
 ## If something breaks
