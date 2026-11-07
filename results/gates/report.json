@@ -1,0 +1,173 @@
+{
+  "passed": true,
+  "tasks": {
+    "sunlight": {
+      "passed": true,
+      "failed": []
+    },
+    "hubwind": {
+      "passed": true,
+      "failed": []
+    },
+    "lowwind": {
+      "passed": true,
+      "failed": []
+    }
+  },
+  "checks": [
+    {
+      "gate": "G1",
+      "name": "beats persistence",
+      "task": "sunlight",
+      "passed": true,
+      "detail": "MAE 0.5369 vs persistence 0.5731 (ratio 0.937, must be below 1)"
+    },
+    {
+      "gate": "G1",
+      "name": "beats persistence",
+      "task": "hubwind",
+      "passed": true,
+      "detail": "MAE 0.7305 vs persistence 0.7492 (ratio 0.975, must be below 1)"
+    },
+    {
+      "gate": "G2",
+      "name": "no regression vs champion",
+      "task": "sunlight",
+      "passed": true,
+      "detail": "skipped: no champion"
+    },
+    {
+      "gate": "G2",
+      "name": "no regression vs champion",
+      "task": "hubwind",
+      "passed": true,
+      "detail": "skipped: no champion"
+    },
+    {
+      "gate": "G2",
+      "name": "no regression vs champion",
+      "task": "lowwind",
+      "passed": true,
+      "detail": "skipped: no champion"
+    },
+    {
+      "gate": "G3",
+      "name": "sane model output",
+      "task": "sunlight",
+      "passed": true,
+      "detail": "raw output 1.735 to 7.564 (allowed -1.20 to 13.20)"
+    },
+    {
+      "gate": "G3",
+      "name": "sane model output",
+      "task": "hubwind",
+      "passed": true,
+      "detail": "raw output 1.220 to 12.825 (allowed -4.00 to 44.00)"
+    },
+    {
+      "gate": "G3",
+      "name": "sane model output",
+      "task": "lowwind",
+      "passed": true,
+      "detail": "raw output 0.000 to 0.948 (allowed -0.10 to 1.10)"
+    },
+    {
+      "gate": "G3",
+      "name": "devices within their limits",
+      "task": "bundle",
+      "passed": true,
+      "detail": "lamp, heater and turbine outputs in range on the spot checks"
+    },
+    {
+      "gate": "G4",
+      "name": "per-site error",
+      "task": "sunlight",
+      "passed": true,
+      "detail": "worst site Kalaburagi MAE 0.5452 = 1.02x pooled 0.5369 (limit 1.5x)"
+    },
+    {
+      "gate": "G4",
+      "name": "per-site error",
+      "task": "hubwind",
+      "passed": true,
+      "detail": "worst site Gadag MAE 0.8002 = 1.10x pooled 0.7305 (limit 1.5x)"
+    },
+    {
+      "gate": "G5",
+      "name": "beats yesterday's flag",
+      "task": "lowwind",
+      "passed": true,
+      "detail": "PR-AUC 0.6500 vs yesterday's flag 0.4992; alert threshold 0.226"
+    },
+    {
+      "gate": "G6",
+      "name": "missing day gives a fallback",
+      "task": "sunlight",
+      "passed": true,
+      "detail": "every site answers with a flagged persistence fallback"
+    },
+    {
+      "gate": "G6",
+      "name": "missing day gives a fallback",
+      "task": "hubwind",
+      "passed": true,
+      "detail": "every site answers with a flagged persistence fallback"
+    },
+    {
+      "gate": "G6",
+      "name": "5% input noise",
+      "task": "sunlight",
+      "passed": true,
+      "detail": "MAE 0.5369 -> 0.5656 (+5.3%, limit 10%)"
+    },
+    {
+      "gate": "G6",
+      "name": "5% input noise",
+      "task": "hubwind",
+      "passed": true,
+      "detail": "MAE 0.7305 -> 0.7621 (+4.3%, limit 10%)"
+    },
+    {
+      "gate": "G6",
+      "name": "5% input noise",
+      "task": "lowwind",
+      "passed": true,
+      "detail": "PR-AUC 0.6500 -> 0.6313 (+2.9%, limit 10%)"
+    },
+    {
+      "gate": "G7",
+      "name": "claimed metrics match",
+      "task": "sunlight",
+      "passed": true,
+      "detail": "claims within 2% of the measurement"
+    },
+    {
+      "gate": "G7",
+      "name": "claimed metrics match",
+      "task": "hubwind",
+      "passed": true,
+      "detail": "claims within 2% of the measurement"
+    },
+    {
+      "gate": "G7",
+      "name": "claimed metrics match",
+      "task": "lowwind",
+      "passed": true,
+      "detail": "claims within 2% of the measurement"
+    },
+    {
+      "gate": "G7",
+      "name": "split and thresholds from training days",
+      "task": "bundle",
+      "passed": true,
+      "detail": "split is the project split; cloudy/low-wind cuts recomputed from training days match"
+    },
+    {
+      "gate": "G7",
+      "name": "future data cannot change a forecast",
+      "task": "bundle",
+      "passed": true,
+      "detail": "garbage after the as-of day changes nothing (forecast and replay)"
+    }
+  ]
+}

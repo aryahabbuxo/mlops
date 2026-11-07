@@ -15,9 +15,12 @@ from pathlib import Path
 
 import mlflow
 import mlflow.sklearn
+import numpy as np
 import pandas as pd
 from loguru import logger
+from mlflow.tracking import MlflowClient
 from sklearn.base import clone
+from sklearn.inspection import permutation_importance
 
 from solarwind.config import Settings, get_settings
 from solarwind.logging_setup import configure_logging
@@ -31,6 +34,7 @@ from solarwind.training.estimators import make_estimators
 from solarwind.training.select import FEATURE_SETS, feature_columns
 
 PERSISTENCE = "persistence"
+REGISTRY_ALIASES = ("champion", "challenger")
 PIP_REQUIREMENTS = [f"{name}=={version(name)}" for name in ("scikit-learn", "pandas", "numpy")]
 # MLflow saves sklearn models with skops by default (no arbitrary pickle code). skops refuses types
 # it cannot vouch for, so the ones our own fitted pipelines contain are listed here. Only load
@@ -55,6 +59,17 @@ class ModelRun:
     fitted: object | None = None
     columns: list[str] = field(default_factory=list)
     params: dict = field(default_factory=dict)
+    model_id: str | None = None  # set by log_runs when the fitted model is logged to MLflow
+
+
+def logged_model_name(target: str, model_name: str, feature_set: str) -> str:
+    """Readable name for a logged model, so the MLflow Models tab never shows bare `model`."""
+    return f"{target}_{model_name}_{feature_set}"
+
+
+def registered_model_name(target: str) -> str:
+    """Registry entry that holds the champion and challenger for one target."""
+    return f"solarwind_{target}"
 
 
 def fit_model(
@@ -86,6 +101,38 @@ def simple_params(model) -> dict:
     """The scalar hyperparameters of a fitted estimator, as MLflow params."""
     scalar = (int, float, str, bool, type(None))
     return {k: v for k, v in model.get_params().items() if isinstance(v, scalar)}
+
+
+def feature_importance(
+    run: ModelRun, frame: pd.DataFrame, settings: Settings, train: TrainSettings
+) -> pd.DataFrame | None:
+    """Permutation importance on the test rows, plus the model's own importances when it has them.
+
+    Returns None for baselines or unfitted runs. The pipeline imputes internally, so NaN in the
+    history features is handled; importance is measured by the drop in score when a column is
+    shuffled, which works for any estimator.
+    """
+    if run.fitted is None or not run.columns:
+        return None
+    test = frame[(frame["split"] == settings.baseline_test_label) & frame[run.target].notna()]
+    if test.empty:
+        return None
+    result = permutation_importance(
+        run.fitted,
+        test[run.columns],
+        test[run.target],
+        n_repeats=10,
+        random_state=train.random_state,
+        n_jobs=-1,
+    )
+    table = pd.DataFrame({"feature": run.columns, "permutation": result.importances_mean})
+    model = run.fitted.named_steps["model"]
+    native = getattr(model, "feature_importances_", None)
+    if native is None and hasattr(model, "coef_"):
+        native = np.abs(np.ravel(model.coef_))
+    if native is not None and len(native) == len(run.columns):
+        table["native"] = native
+    return table.sort_values("permutation", ascending=False).reset_index(drop=True)
 
 
 def run_all(
@@ -126,6 +173,39 @@ def best_ml(table: pd.DataFrame) -> dict[str, str]:
     """The lowest-MAE ML model per target (labels contain a colon, baselines do not)."""
     ml = table[table["model"].str.contains(":")]
     return ml.groupby("target").first()["model"].to_dict()
+
+
+def ranked_ml(table: pd.DataFrame) -> dict[str, list[str]]:
+    """ML labels per target, lowest test MAE first (the comparison table is already sorted)."""
+    ml = table[table["model"].str.contains(":")]
+    return {target: group["model"].tolist() for target, group in ml.groupby("target")}
+
+
+def register_champions(
+    runs: list[ModelRun], table: pd.DataFrame, train: TrainSettings
+) -> dict[str, dict[str, str]]:
+    """Register the best ML model per target as champion and the runner-up as challenger.
+
+    Returns the version registered for each alias per target. Does nothing when models were not
+    logged (no model id to point the registry at).
+    """
+    model_id = {(r.target, r.label): r.model_id for r in runs if r.kind == "ml"}
+    client = MlflowClient(train.mlflow_tracking_uri)
+    registered: dict[str, dict[str, str]] = {}
+    for target, labels in ranked_ml(table).items():
+        name = registered_model_name(target)
+        for alias, label in zip(REGISTRY_ALIASES, labels, strict=False):
+            source_id = model_id.get((target, label))
+            if source_id is None:
+                continue
+            version = mlflow.register_model(f"models:/{source_id}", name)
+            client.set_registered_model_alias(name, alias, version.version)
+            client.set_model_version_tag(name, version.version, "label", label)
+            client.update_model_version(
+                name, version.version, description=f"{alias} for {target}: {label}"
+            )
+            registered.setdefault(target, {})[alias] = version.version
+    return registered
 
 
 def readme_text(table: pd.DataFrame, coverage: pd.DataFrame, settings: Settings) -> str:
@@ -250,13 +330,55 @@ def log_runs(
                 mlflow.log_text("\n".join(run.columns) + "\n", "features.txt")
             if run.fitted is not None and train.log_models:
                 example = frame.loc[frame["split"] == settings.baseline_train_label, run.columns]
-                mlflow.sklearn.log_model(
+                info = mlflow.sklearn.log_model(
                     run.fitted,
-                    name="model",
+                    name=logged_model_name(run.target, run.model_name, run.feature_set),
                     input_example=example.head(3),
                     pip_requirements=PIP_REQUIREMENTS,
                     skops_trusted_types=SKOPS_TRUSTED_TYPES,
                 )
+                run.model_id = info.model_id
+            importance = feature_importance(run, frame, settings, train)
+            if importance is not None:
+                importance.to_csv(tmp_dir / "importance.csv", index=False)
+                plots.plot_importance(importance, tmp_dir / "importance.png")
+                mlflow.log_artifact(str(tmp_dir / "importance.csv"))
+                mlflow.log_artifact(str(tmp_dir / "importance.png"))
+
+
+def log_summary(
+    frame: pd.DataFrame, table: pd.DataFrame, coverage: pd.DataFrame, train: TrainSettings
+) -> None:
+    """The evaluation summary run: comparison table, best figure, coverage and data profile."""
+    mlflow.set_tracking_uri(train.mlflow_tracking_uri)
+    mlflow.set_experiment(train.mlflow_experiment)
+    out = train.reports_dir
+    with mlflow.start_run(run_name="summary"), tempfile.TemporaryDirectory() as tmp:
+        tmp_dir = Path(tmp)
+        mlflow.set_tags({"kind": "summary"})
+        counts = frame["split"].value_counts().to_dict()
+        mlflow.log_params(
+            {
+                "rows": len(frame),
+                "columns": frame.shape[1],
+                "date_start": str(frame["date"].min().date()),
+                "date_end": str(frame["date"].max().date()),
+                **{f"rows_{label}": int(n) for label, n in counts.items()},
+            }
+        )
+        best = table.sort_values(["target", "mae"]).groupby("target").first()
+        for target, row in best.iterrows():
+            mlflow.log_metric(f"best_test_mae_{target}", float(row["mae"]))
+        frame.describe().T.to_csv(tmp_dir / "data_profile.csv")
+        coverage.to_csv(tmp_dir / "coverage.csv", index=False)
+        mlflow.log_artifact(str(tmp_dir / "data_profile.csv"))
+        mlflow.log_artifact(str(tmp_dir / "coverage.csv"))
+        for name in ("comparison.csv", "README.md"):
+            if (out / name).exists():
+                mlflow.log_artifact(str(out / name))
+        best_fig = out / "figures" / "best.png"
+        if best_fig.exists():
+            mlflow.log_artifact(str(best_fig))
 
 
 def main() -> None:
@@ -269,7 +391,12 @@ def main() -> None:
     table = comparison_table(primary, settings.baseline_test_label)
     write_reports(long, primary, table, settings, train)
     log_runs(runs, long, primary, frame, settings, train, data_md5(settings.features_path))
-    logger.info("training done", runs=len(runs), reports=str(train.reports_dir))
+    registered = register_champions(runs, table, train) if train.log_models else {}
+    coverage = evaluate.coverage(long, evaluate.common_rows(long))
+    log_summary(frame, table, coverage, train)
+    logger.info(
+        "training done", runs=len(runs), registered=registered, reports=str(train.reports_dir)
+    )
 
 
 if __name__ == "__main__":

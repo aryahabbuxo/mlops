@@ -31,6 +31,19 @@ def plot_run(rows: pd.DataFrame, test_label: str, path: Path) -> None:
     plt.close(fig)
 
 
+def plot_importance(importance: pd.DataFrame, path: Path, top: int = 15) -> None:
+    """Horizontal bar chart of the most important features by permutation importance."""
+    rows = importance.head(top).iloc[::-1]
+    fig, ax = plt.subplots(figsize=(8, max(3, 0.32 * len(rows))))
+    ax.barh(rows["feature"], rows["permutation"], color="#4c72b0")
+    ax.set_xlabel("permutation importance (drop in score)")
+    ax.set_title("Feature importance")
+    ax.grid(axis="x", alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(path, dpi=110)
+    plt.close(fig)
+
+
 def plot_best(long: pd.DataFrame, best: dict[str, str], test_label: str, path: Path) -> None:
     """One panel per target: actual, persistence and the best model on the test rows."""
     targets = sorted(best)

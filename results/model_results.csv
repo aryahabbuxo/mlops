@@ -1,0 +1,21 @@
+task,split,planner,mae,ratio_to_naive,n
+sunlight_tomorrow (kWh/m2/day),val,naive,0.9941572382829609,1.0,1464
+sunlight_tomorrow (kWh/m2/day),val,seasonal,0.693479326394047,0.6975549738910277,1464
+sunlight_tomorrow (kWh/m2/day),val,persistence,0.5731148224043715,0.5764830756492961,1464
+sunlight_tomorrow (kWh/m2/day),val,ridge,0.5440910888586148,0.5472887667129307,1464
+sunlight_tomorrow (kWh/m2/day),val,hgb,0.5369249995012229,0.5400805615302487,1464
+sunlight_tomorrow (kWh/m2/day),test,naive,0.986770651609982,1.0,2548
+sunlight_tomorrow (kWh/m2/day),test,seasonal,0.7093397855695726,0.7188496986733822,2548
+sunlight_tomorrow (kWh/m2/day),test,persistence,0.6010527472527472,0.6091108873901849,2548
+sunlight_tomorrow (kWh/m2/day),test,ridge,0.5495905714384178,0.5569587730864555,2548
+sunlight_tomorrow (kWh/m2/day),test,hgb,0.575112757807892,0.5828231280182048,2548
+hub_wind_tomorrow (m/s),val,naive,1.7229403812392199,1.0,1464
+hub_wind_tomorrow (m/s),val,seasonal,1.2677172333312365,0.735787057483344,1464
+hub_wind_tomorrow (m/s),val,persistence,0.749236501090631,0.43485921465938643,1464
+hub_wind_tomorrow (m/s),val,ridge,0.7305076873717078,0.4239889524478451,1464
+hub_wind_tomorrow (m/s),val,hgb,0.7742303607518932,0.44936572918154616,1464
+hub_wind_tomorrow (m/s),test,naive,1.5851634841862114,1.0,2548
+hub_wind_tomorrow (m/s),test,seasonal,1.1596843089810085,0.7315865653922538,2548
+hub_wind_tomorrow (m/s),test,persistence,0.6865602811183864,0.43311638702733024,2548
+hub_wind_tomorrow (m/s),test,ridge,0.6609988144500014,0.41699094197173225,2548
+hub_wind_tomorrow (m/s),test,hgb,0.6882688431295028,0.43419423295815135,2548

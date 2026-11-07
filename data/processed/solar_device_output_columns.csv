@@ -1,0 +1,9 @@
+Simulated from device specs and NASA POWER weather.
+name,unit,meaning,how_made
+date,date,calendar day,from the NASA POWER file
+site_label,label,anonymised site (Solar site N / Wind site N),site naming only
+split,category,train <=2023 / val 2024 / test >=2025,by date
+sun_kwh_m2_day,kWh/m2/day,all-sky surface shortwave (ALLSKY_SFC_SW_DWN),"NASA POWER, measured"
+air_temp_c,deg C,air temperature at 2 m (T2M),"NASA POWER, measured"
+wind_10m_ms,m/s,wind speed at 10 m (WS10M),"NASA POWER, measured"
+heater_tank_temp_c,deg C,tank temperature that day,"heater_simulate(sun, air temp, wind 10 m)"

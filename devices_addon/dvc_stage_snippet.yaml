@@ -1,0 +1,16 @@
+# Paste under `stages:` in dvc.yaml
+  train_device_models:
+    cmd: python train_device_models.py && python make_results_md.py
+    deps:
+      - data/raw/nasa
+      - devices.py
+      - device_pipeline.py
+      - train_device_models.py
+      - make_results_md.py
+      - specs/device_specs.csv
+    outs:
+      - results/device_models
+      - RESULTS.md
+    metrics:
+      - results/device_models/metrics.json:
+          cache: false

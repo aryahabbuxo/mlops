@@ -1,0 +1,4 @@
+# In pyproject.toml, under [tool.ruff]: extend line 55-58 block with
+extend-exclude = ["run_all.py", "one_site.py", "make_data_story.py", "make_device_story.py"]
+# (devices.py, device_pipeline.py, train_device_models.py, make_results_md.py and tests/ are lint-clean)
+# Also change `src = ["src", "tests"]` to `src = [".", "src", "tests"]` so imports sort correctly.

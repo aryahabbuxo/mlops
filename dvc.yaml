@@ -78,3 +78,79 @@ stages:
       - reports/baselines/yearly.csv
       - reports/baselines/README.md
       - reports/baselines/figures
+
+  train:
+    cmd: python -m solarwind.training.run
+    deps:
+      - data/processed/features.csv
+      - src/solarwind/training
+      - src/solarwind/models
+      - src/solarwind/features
+      - src/solarwind/config
+      - src/solarwind/logging_setup.py
+    metrics:
+      - reports/models/metrics.json
+    outs:
+      - reports/models/comparison.csv
+      - reports/models/predictions.csv
+      - reports/models/README.md
+      - reports/models/figures
+
+  report_features_models:
+    cmd: python -m solarwind.reporting.features_models
+    deps:
+      - data/processed/features.csv
+      - src/solarwind/reporting
+      - src/solarwind/models
+      - src/solarwind/features
+      - src/solarwind/config
+      - src/solarwind/logging_setup.py
+    outs:
+      - reports/features_models/metrics.csv
+      - reports/features_models/predictions.csv
+      - reports/features_models/report.html
+      - reports/features_models/figures
+
+  train_device_models:
+    cmd: python -m solarwind.devices.train --export serve && python make_results_md.py
+    deps:
+      - data/raw/nasa
+      - config/sites.csv
+      - specs/device_specs.csv
+      - src/solarwind/devices
+      - make_results_md.py
+    outs:
+      - results/device_models/device_error.csv
+      - results/device_models/low_wind_results.csv
+      - results/device_models/regression_results.csv
+      - results/device_models/selection.json
+      - serve
+      - RESULTS.md
+    metrics:
+      - results/device_models/metrics.json:
+          cache: false
+
+  train_lstm:
+    cmd: python -m solarwind.devices.lstm
+    deps:
+      - data/raw/nasa
+      - config/sites.csv
+      - src/solarwind/devices
+    outs:
+      - results/lstm/decision.json
+      - results/lstm/lstm_results.csv
+      - results/lstm/leaderboard.md
+      - serve_shadow
+    metrics:
+      - results/lstm/metrics.json:
+          cache: false
+
+  quality_gates:
+    cmd: python -m solarwind.devices.gates check --serve serve --out results/gates/report.json
+    deps:
+      - serve
+      - src/solarwind/devices/gates.py
+      - src/solarwind/devices/inference.py
+    outs:
+      - results/gates/report.json:
+          cache: false

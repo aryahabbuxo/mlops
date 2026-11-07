@@ -1,0 +1,6 @@
+{
+  "sunlight_lstm_mean_val_mae": 0.5201,
+  "sunlight_lstm_mean_test_mae": 0.5315,
+  "hubwind_lstm_mean_val_mae": 0.7096,
+  "hubwind_lstm_mean_test_mae": 0.6477
+}

@@ -15,3 +15,14 @@ dist/
 .DS_Store
 Thumbs.db
 data/scratch/
+mlflow.db
+mlruns/
+mlartifacts/
+/serve
+/RESULTS.md
+
+mlflow.db
+runs/tb/*
+!runs/tb/.gitkeep
+/serve_shadow
+/serve_bad

@@ -3,6 +3,7 @@ name: ci
 on:
   push:
   pull_request:
+  workflow_dispatch:
 
 jobs:
   lint-and-test:
@@ -25,3 +26,133 @@ jobs:
           ruff format --check .
       - name: Test (tests that need raw data skip themselves)
         run: python -m pytest -q
+
+  model-gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements.txt
+      - name: Install pinned requirements
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements.txt
+          python -m pip install -e . --no-deps
+      - name: Pull serving bundle (DVC)
+        env:
+          DAGSHUB_USER: ${{ secrets.DAGSHUB_USER }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          dvc remote modify --local dagshub auth basic
+          dvc remote modify --local dagshub user "$DAGSHUB_USER"
+          dvc remote modify --local dagshub password "$DAGSHUB_TOKEN"
+          dvc pull serve
+      - name: Promotion gates
+        run: python -m solarwind.devices.gates check --serve serve
+      - name: Serving contract against the real bundle
+        run: python -m pytest -q tests/serving
+
+  docker-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pull serving bundle (DVC)
+        env:
+          DAGSHUB_USER: ${{ secrets.DAGSHUB_USER }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "dvc==3.67.1"
+          dvc remote modify --local dagshub auth basic
+          dvc remote modify --local dagshub user "$DAGSHUB_USER"
+          dvc remote modify --local dagshub password "$DAGSHUB_TOKEN"
+          dvc pull serve
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          load: true
+          tags: greenops-api:ci
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Run container
+        run: docker run -d --name api -p 8000:8000 greenops-api:ci
+      - name: Wait for readiness
+        run: |
+          for _ in $(seq 1 30); do
+            if curl -fsS http://localhost:8000/ready >/dev/null 2>&1; then
+              echo "ready"; exit 0
+            fi
+            sleep 2
+          done
+          echo "service did not become ready in time"; exit 1
+      - name: Smoke test endpoints (real bundle backend)
+        run: |
+          set -euo pipefail
+          curl -fsS http://localhost:8000/health | grep -q '"status":"ok"'
+          curl -fsS http://localhost:8000/ready | grep -q '"ready":true'
+          curl -fsS http://localhost:8000/version | grep -q '"git_commit"'
+          curl -fsS -X POST http://localhost:8000/v1/forecast \
+            -H 'Content-Type: application/json' \
+            -d '{"site":"pavagada","as_of":"2025-06-01"}' | grep -q 'sunlight_kwh_m2'
+      - name: Container logs
+        if: always()
+        run: docker logs api || true
+      - name: Stop container
+        if: always()
+        run: docker rm -f api || true
+
+  publish-image:
+    # Publishes the exact tested image (bundle baked) to GHCR for the live deployment.
+    # Runs on main or on a manual dispatch; never on PRs.
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pull serving bundle (DVC)
+        env:
+          DAGSHUB_USER: ${{ secrets.DAGSHUB_USER }}
+          DAGSHUB_TOKEN: ${{ secrets.DAGSHUB_TOKEN }}
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install "dvc==3.67.1"
+          dvc remote modify --local dagshub auth basic
+          dvc remote modify --local dagshub user "$DAGSHUB_USER"
+          dvc remote modify --local dagshub password "$DAGSHUB_TOKEN"
+          dvc pull serve
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/aryahabbuxo/greenops-api:latest
+            ghcr.io/aryahabbuxo/greenops-api:${{ github.sha }}
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
