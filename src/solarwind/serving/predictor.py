@@ -217,7 +217,8 @@ def get_predictor() -> Predictor:
         from solarwind.devices.inference import BundlePredictor
 
         shadow = None
-        shadow_dir = os.getenv("SHADOW_DIR")  # unset in Docker/Render, so no TensorFlow import there
+        shadow_dir = os.getenv("SHADOW_DIR")  
+        # unset in Docker/Render, so no TensorFlow import there
         if shadow_dir:
             try:
                 from solarwind.devices.lstm import LstmShadow
