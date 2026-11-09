@@ -7,7 +7,7 @@ About 7 minutes, no slides. Two people: **A** drives the page, **B** drives the 
 | Check | How | Done |
 |---|---|---|
 | Live page opens | https://greenops-api-latest.onrender.com: open it 3 minutes early (free host, cold start about a minute), header says "online" | |
-| Local copy ready (backup 1) | Terminal 1: `$env:PREDICTOR="bundle"; $env:SERVE_DIR="serve"; uvicorn solarwind.serving.app:app --port 8001`, wait for startup, then open `file:///C:/dev/mlops/web/index.html?api=http://localhost:8001` | |
+| Local copy ready (backup 1) | Terminal 1: `$env:PREDICTOR="bundle"; $env:SERVE_DIR="serve"; $env:SHADOW_DIR="serve_shadow"; uvicorn solarwind.serving.app:app --port 8001`, wait about 45 s for startup, then open `http://127.0.0.1:8001/#site=pavagada&date=2026-09-20` | |
 | Recording ready (backup 2) | `demo_fallback.mp4` on the desktop, plays | |
 | Terminal 2 in the repo | `cd C:\dev\mlops; .venv\Scripts\activate` | |
 | TensorBoard | `tensorboard --logdir runs/tb`, open <http://localhost:6006> (TEXT tab) | |
