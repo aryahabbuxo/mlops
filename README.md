@@ -133,8 +133,8 @@ Status codes: 404 unknown site, 409 date outside 2019-10-30 to 2026-09-30, 503 m
 
 Work goes to `phase2` by pull request. One reviewed merge moves `phase2` to `main`, followed by the
 tag `v1.0-phase2`. The workflow's `publish-image` job runs only on `main` or by hand, and pushes the
-container image to GHCR; Render (free tier, `deploy/render.md`) runs that image on port 8000; `deploy/cloud-run.md` is the upgrade path. After a publish, redeploy with Manual Deploy, then Deploy latest reference.
-Required GitHub secrets: `DAGSHUB_USER` and `DAGSHUB_TOKEN` (to pull the pinned bundle in CI).
+container image to GHCR; Render (free tier, `deploy/render.md`) runs that image on port 8000; `deploy/cloud-run.md` is the upgrade path. After a publish, redeploy with automatic redeployment on commit using Render Deploy Hook, then Deploy latest reference.
+Required GitHub secrets: `DAGSHUB_USER`, `DAGSHUB_TOKEN` (to pull the pinned bundle in CI), and `RENDER_DEPLOY_HOOK` to automate deployment.
 
 ## Documents
 
