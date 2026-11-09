@@ -14,7 +14,6 @@ Ran `docker run --cpus=0.1 --memory=512m` locally:
 | First forecast (cold) | ~2.3 s |
 | Warm forecast | 75–135 ms |
 
-Fits the free tier. The slow cold start is why the uptime pinger below is **required**.
 
 ## Deploy
 
@@ -46,9 +45,6 @@ Open `https://<service>.onrender.com/` for the UI.
 
 Render free services sleep after ~15 min idle; the next request pays the ~68 s cold start and may
 time out. Add an external pinger hitting `/health` every 5 minutes:
-
-- **UptimeRobot** (free): new HTTP(s) monitor, URL `https://<service>.onrender.com/health`,
-  interval 5 min. Or **cron-job.org** with the same URL/interval.
 
 ## Notes
 
