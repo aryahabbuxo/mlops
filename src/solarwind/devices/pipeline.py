@@ -2,7 +2,11 @@
 
 No side effects on import (unlike run_all.py), so tests and scripts can import it freely.
 Rules: features of day t use days up to t only; the label is day t+1; thresholds are fitted on
-the training period only; train <= 2023-12-31, validation = 2024, test >= 2025-01-01.
+the training period only. Default split: train <= 2023-12-31, validation = 2024, test >= 2025-01-01.
+
+The official split is versioned in params.yaml (split.train_end, split.val_end) so a retrained model
+version records the data window it was built on. Command-line tools call `use_params()` to load it;
+importing this module never reads a file.
 """
 
 from __future__ import annotations
@@ -23,6 +27,7 @@ NASA_GLOB = "data/raw/nasa/*.csv"
 SOLAR_SITES = ["Pavagada", "Raichur", "Kalaburagi", "Mysuru"]
 WIND_SITES = ["Chitradurga", "Gadag", "Koppal", "Hassan"]
 TRAIN_END, VAL_END = "2023-12-31", "2024-12-31"
+PARAMS_FILE = Path("params.yaml")
 SEED = 42
 
 SUN_FEATS = [
@@ -64,6 +69,48 @@ def load_nasa(pattern: str = NASA_GLOB) -> pd.DataFrame:
     d = pd.concat(frames).replace(-999, np.nan)
     d = d.rename(columns={"ALLSKY_SFC_SW_DWN": "sun"}).sort_values(["site", "date"])
     return add_derived(d.reset_index(drop=True))
+
+
+def read_split(path: Path | str = PARAMS_FILE) -> tuple[str, str] | None:
+    """(train_end, val_end) from the `split:` block of params.yaml, or None if there is no file.
+
+    A tiny reader for two keys, so the serving image needs no YAML library.
+    """
+    path = Path(path)
+    if not path.is_file():
+        return None
+    values: dict[str, str] = {}
+    in_split = False
+    for raw in path.read_text(encoding="utf-8").splitlines():
+        line = raw.split("#", 1)[0].rstrip()
+        if not line.strip():
+            continue
+        if not line.startswith((" ", "\t")):
+            in_split = line.strip() == "split:"
+            continue
+        key, _, value = line.strip().partition(":")
+        if in_split and key in ("train_end", "val_end"):
+            values[key] = value.strip().strip("\"'")
+    if set(values) != {"train_end", "val_end"}:
+        raise ValueError(f"{path} must set split.train_end and split.val_end")
+    return values["train_end"], values["val_end"]
+
+
+def set_split(train_end: str, val_end: str) -> None:
+    """Change the split for this process (training, gates, registry). Dates are YYYY-MM-DD."""
+    global TRAIN_END, VAL_END
+    te, ve = pd.Timestamp(train_end), pd.Timestamp(val_end)
+    if not te < ve:
+        raise ValueError(f"train_end {train_end} must be before val_end {val_end}")
+    TRAIN_END, VAL_END = te.strftime("%Y-%m-%d"), ve.strftime("%Y-%m-%d")
+
+
+def use_params(path: Path | str = PARAMS_FILE) -> tuple[str, str]:
+    """Load the split from params.yaml if it exists; return the split in force."""
+    split = read_split(path)
+    if split is not None:
+        set_split(*split)
+    return TRAIN_END, VAL_END
 
 
 def add_derived(d: pd.DataFrame) -> pd.DataFrame:

@@ -131,12 +131,16 @@ def worst(statuses) -> str:
 
 # ---------- windows ----------
 def windows(
-    weather: pd.DataFrame, start: str | None = None, end: str | None = None
+    weather: pd.DataFrame,
+    start: str | None = None,
+    end: str | None = None,
+    train_end: str | None = None,
 ) -> tuple[pd.Series, pd.Series]:
     """Boolean masks (reference, current) over `weather` rows.
 
     current: start..end, default the last DEFAULT_MONTHS whole calendar months of the data.
-    reference: days up to TRAIN_END in the same calendar months as the current window.
+    reference: training days (up to `train_end`, default the project split) in the same calendar
+    months as the current window.
     """
     dates = pd.to_datetime(weather["date"])
     hi = pd.Timestamp(end) if end else dates.max()
@@ -145,7 +149,7 @@ def windows(
     if not current.any():
         raise ValueError(f"no data between {lo.date()} and {hi.date()}")
     months = set(dates[current].dt.month)
-    reference = (dates <= pd.Timestamp(pipe.TRAIN_END)) & dates.dt.month.isin(months)
+    reference = (dates <= pd.Timestamp(train_end or pipe.TRAIN_END)) & dates.dt.month.isin(months)
     if not reference.any():
         raise ValueError("no training days in the same months as the current window")
     return reference, current
@@ -264,7 +268,8 @@ def check(
         raise ValueError(f"unknown scenario {scenario!r}; expected one of {sorted(SCENARIOS)}")
     weather = weather.reset_index(drop=True)
     kinds = {site: meta["kind"] for site, meta in manifest["sites"].items()}
-    ref, cur = windows(weather, start, end)
+    train_end = manifest.get("split", {}).get("train_end")  # the bundle's own training window
+    ref, cur = windows(weather, start, end, train_end)
     features = data_drift(weather, kinds, scenario, ref, cur)
     preds = prediction_drift(weather, manifest, models, scenario, ref, cur) if models else {}
     overall = worst([f["status"] for f in features] + [p["status"] for p in preds.values()])

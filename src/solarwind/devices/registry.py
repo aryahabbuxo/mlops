@@ -33,6 +33,7 @@ import mlflow
 from mlflow import MlflowClient
 
 from solarwind.devices import bundle
+from solarwind.devices import pipeline as pipe
 from solarwind.devices.gates import PRIMARY, TOLERANCE, check_regression  # noqa: F401
 
 os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")  # quiet CLI output
@@ -359,6 +360,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--out", default="serve")
     p.add_argument("--base", default=None, help="bundle to take snapshot/sites from")
     args = parser.parse_args(argv)
+    pipe.use_params()  # the gates run during register check the split in params.yaml
     try:
         if args.cmd == "register":
             result = register(args.serve, run_gates=not args.no_gates)
