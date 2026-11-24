@@ -9,6 +9,7 @@ import csv
 import os
 import subprocess
 import sys
+import time
 import uuid
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -18,11 +19,13 @@ from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from solarwind.config import get_settings, load_sites
+from solarwind.serving import monitoring
 from solarwind.serving.predictor import (
     OutOfRangeError,
     UnknownSiteError,
@@ -93,10 +96,13 @@ async def lifespan(app: FastAPI):
     ]
     app.state.site_kinds = {s.site_name: s.source_type for s in sites}
     app.state.device_specs = _load_device_specs(_DEVICE_SPECS_PATH)
+    app.state.stats = monitoring.ServiceStats()
     app.state.predictor = get_predictor()
     app.state.git_commit = _git_commit()
+    info = app.state.predictor.info()
+    monitoring.set_model_info(info["models"], info.get("versions", {}))
     app.state.ready = True
-    logger.info("predictor loaded", models=len(app.state.predictor.info()["models"]))
+    logger.info("predictor loaded", models=len(info["models"]))
     yield
 
 
@@ -121,6 +127,23 @@ async def add_request_id(request: Request, call_next: Callable[[Request], Awaita
     response = await call_next(request)
     response.headers["X-Request-ID"] = request_id
     return response
+
+
+@app.middleware("http")
+async def record_metrics(request: Request, call_next: Callable[[Request], Awaitable]):
+    started = time.perf_counter()
+    status = 500
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        return response
+    finally:
+        # Only API routes are counted: the route template keeps label values bounded, and
+        # static files (which have no API route) stay out of the traffic numbers.
+        route = request.scope.get("route")
+        stats = getattr(request.app.state, "stats", None)
+        if route is not None and stats is not None:
+            monitoring.record_request(stats, route.path, status, time.perf_counter() - started)
 
 
 def _request_id(request: Request) -> str:
@@ -168,6 +191,11 @@ async def health() -> HealthResponse:
     return HealthResponse(status="ok")
 
 
+@app.get("/metrics", include_in_schema=False)
+async def metrics() -> Response:
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
 @app.get("/ready")
 async def ready(request: Request) -> JSONResponse:
     if not getattr(request.app.state, "ready", False):
@@ -203,6 +231,7 @@ async def list_devices(request: Request) -> list[DeviceSpec]:
 
 @app.post("/v1/forecast", response_model=ForecastResponse, dependencies=[Depends(require_ready)])
 async def forecast(body: ForecastRequest, request: Request) -> ForecastResponse:
+    started = time.perf_counter()
     state = request.app.state
     kind = state.site_kinds.get(body.site)
     if kind is None:
@@ -218,7 +247,13 @@ async def forecast(body: ForecastRequest, request: Request) -> ForecastResponse:
         logger.exception("forecast failed; using persistence fallback", site=body.site)
         result = persistence_fallback(kind, body.site, body.as_of)
     result["request_id"] = _request_id(request)
-    return ForecastResponse(**result)
+    response = ForecastResponse(**result)
+    monitoring.observe_forecast(state.stats, body.site, result)
+    latency_ms = (time.perf_counter() - started) * 1000
+    monitoring.log_prediction(
+        monitoring.forecast_record(result, latency_ms), monitoring.prediction_log_path()
+    )
+    return response
 
 
 @app.get("/v1/replay", response_model=list[ReplayItem], dependencies=[Depends(require_ready)])

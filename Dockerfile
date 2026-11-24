@@ -37,7 +37,8 @@ COPY serve ./serve
 # pure JSON API when WEB_DIR is absent.
 COPY web ./web
 
-RUN useradd --create-home --uid 1000 appuser && chown -R appuser /app
+# logs/ holds the prediction log (PRED_LOG); created here so the non-root user can write it.
+RUN mkdir -p /app/logs && useradd --create-home --uid 1000 appuser && chown -R appuser /app
 USER appuser
 
 EXPOSE 8000

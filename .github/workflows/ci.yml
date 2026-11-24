@@ -108,6 +108,8 @@ jobs:
           curl -fsS -X POST http://localhost:8000/v1/forecast \
             -H 'Content-Type: application/json' \
             -d '{"site":"pavagada","as_of":"2025-06-01"}' | grep -q 'sunlight_kwh_m2'
+          curl -fsS http://localhost:8000/metrics \
+            | grep -q 'greenops_requests_total{endpoint="/v1/forecast",status="200"}'
       - name: Container logs
         if: always()
         run: docker logs api || true
