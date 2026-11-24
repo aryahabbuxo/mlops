@@ -1,0 +1,17 @@
+{
+  "service": {"git_commit": "a3abaa0", "api_version": "0.2.0", "started_at": "2026-11-22T09:00:00Z",
+              "uptime_s": 3600, "requests_total": 120, "p95_latency_ms": 140, "fallbacks_total": 2},
+  "models": {"sunlight": {"version": "1", "id": "hgb-01f5da66", "alias": "champion"},
+             "hubwind": {"version": "1", "id": "ridge-8a5b79e4", "alias": "champion"},
+             "lowwind": {"version": "1", "id": "logistic-df49f764", "alias": "champion"}},
+  "data": {"source": "NASA POWER", "sites": 8, "rows": 20224, "snapshot_end": "2026-09-30"},
+  "gates": {"passed": 7, "total": 7, "report_date": "2026-11-06"},
+  "registry": [{"task": "sunlight", "version": "1", "aliases": ["champion"], "gates": "passed",
+                "reason": "first release", "approved_by": "model owner, platform owner", "date": "2026-11-11"}],
+  "drift": {"status": "OK", "scenario": "none", "generated_at": "2026-11-22T10:00:00Z"},
+  "performance": [{"month": "2024-01", "task": "sunlight", "model_mae": 0.51,
+                   "persistence_mae": 0.55}],
+  "links": {"repo": "https://github.com/aryahabbuxo/mlops",
+            "actions": "https://github.com/aryahabbuxo/mlops/actions",
+            "image": "ghcr.io/aryahabbuxo/greenops-api"}
+}
