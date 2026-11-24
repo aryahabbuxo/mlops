@@ -217,8 +217,7 @@ def get_predictor() -> Predictor:
         from solarwind.devices.inference import BundlePredictor
 
         shadow = None
-        shadow_dir = os.getenv("SHADOW_DIR")  
-        # unset in Docker/Render, so no TensorFlow import there
+        shadow_dir = os.getenv("SHADOW_DIR")  # unset on Render: no TensorFlow
         if shadow_dir:
             try:
                 from solarwind.devices.lstm import LstmShadow
@@ -227,3 +226,4 @@ def get_predictor() -> Predictor:
             except Exception:  # TensorFlow missing or bundle changed: serve without the shadow
                 logging.getLogger(__name__).exception("LSTM shadow not loaded")
         return BundlePredictor(Path(os.getenv("SERVE_DIR", "serve")), shadow=shadow)
+    raise ValueError(f"unknown PREDICTOR backend: {backend!r}")

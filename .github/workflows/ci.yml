@@ -113,6 +113,7 @@ jobs:
         run: docker rm -f api || true
 
   publish-image:
+    needs: [lint-and-test, model-gates, docker-smoke]
     # Publishes the exact tested image (bundle baked) to GHCR for the live deployment.
     # Runs on main or on a manual dispatch; never on PRs.
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
