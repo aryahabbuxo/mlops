@@ -21,7 +21,7 @@ Scenarios (induced drift, applied to the current window only):
 
 Run:
     python -m solarwind.monitoring.drift check --scenario cloudy_monsoon
-Exit code 0 OK, 1 WARN, 2 ALERT. Writes results/monitoring/drift_latest.json.
+Writes results/monitoring/drift_latest.json. With --exit-code: exit 0 OK, 1 WARN, 2 ALERT.
 """
 
 from __future__ import annotations
@@ -181,12 +181,11 @@ def _design(entry: dict, site: str, frame: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(data, index=frame.index, columns=cols).astype(float)
 
 
-def predictions(weather: pd.DataFrame, manifest: dict, models: dict) -> pd.DataFrame:
-    """The champion's prediction for every (site, date): columns site, date, task, value.
+def site_frames(weather: pd.DataFrame, manifest: dict):
+    """Yield (site, kind, frame): the model features for every day of each known site.
 
-    Features are built with the SAME pipeline code the models were trained on.
+    Built with the SAME pipeline code the models were trained on (add_derived, sun/wind_frame).
     """
-    out = []
     for site, g in weather.groupby("site"):
         meta = manifest["sites"].get(site)
         if meta is None:
@@ -199,12 +198,26 @@ def predictions(weather: pd.DataFrame, manifest: dict, models: dict) -> pd.DataF
                 frame = pipe.sun_frame(g, meta["cloudy_cut"])
             else:
                 frame = pipe.wind_frame(g, meta["low_cut"])
-        for task in KIND_TASKS[meta["kind"]]:
+        yield site, meta["kind"], frame
+
+
+def model_output(model, task: str, x: pd.DataFrame) -> np.ndarray:
+    """Regression value, or the probability of a calm day for the low-wind classifier."""
+    if task == "lowwind":
+        return model.predict_proba(x)[:, 1]
+    return model.predict(x)
+
+
+def predictions(weather: pd.DataFrame, manifest: dict, models: dict) -> pd.DataFrame:
+    """The champion's prediction for every (site, date): columns site, date, task, value."""
+    out = []
+    for site, kind, frame in site_frames(weather, manifest):
+        for task in KIND_TASKS[kind]:
             x = _design(manifest["tasks"][task], site, frame)
             ok = x.notna().all(axis=1)
             if not ok.any():
                 continue
-            values = models[task].predict(x[ok])
+            values = model_output(models[task], task, x[ok])
             out.append(
                 pd.DataFrame(
                     {"site": site, "date": frame.loc[ok, "date"], "task": task, "value": values}
@@ -305,6 +318,11 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("--serve", default=os.getenv("SERVE_DIR", "serve"), help="bundle folder")
     c.add_argument("--out", type=Path, default=OUT_FILE, help="where to write the JSON result")
     c.add_argument("--no-predictions", action="store_true", help="data drift only (faster)")
+    c.add_argument(
+        "--exit-code",
+        action="store_true",
+        help="exit 0 OK, 1 WARN, 2 ALERT (for scripts); without it the command always exits 0",
+    )
     args = parser.parse_args(argv)
 
     result = check_bundle(
@@ -314,7 +332,7 @@ def main(argv: list[str] | None = None) -> int:
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     print(f"written {args.out}")
-    return EXIT_CODE[result["status"]]
+    return EXIT_CODE[result["status"]] if args.exit_code else 0
 
 
 if __name__ == "__main__":

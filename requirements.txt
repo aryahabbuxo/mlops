@@ -23,3 +23,4 @@ tensorflow-cpu==2.20.0
 tensorboard==2.20.0
 tensorboardX==2.6.4
 setuptools==80.9.0
+evidently==0.7.23

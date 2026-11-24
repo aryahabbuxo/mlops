@@ -53,6 +53,10 @@ serve = [
     "skops==0.16.0",
 ]
 
+monitor = [
+    "evidently==0.7.23",
+]
+
 [project.scripts]
 solarwind-cea-download = "solarwind.data.cea.download:main"
 solarwind-cea-build = "solarwind.data.cea.build_daily:main"
