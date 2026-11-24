@@ -1,0 +1,42 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: greenops-drift
+    folder: GreenOps
+    interval: 30s
+    rules:
+      - uid: greenops-drift-alert
+        title: Drift ALERT
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 300
+              to: 0
+            datasourceUid: prometheus
+            model:
+              refId: A
+              expr: max(greenops_drift_status)
+              instant: true
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: A
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [1.5]
+        noDataState: OK
+        execErrState: Error
+        for: 0s
+        annotations:
+          summary: A drift scenario reached ALERT (PSI above 0.25)
+          description: Check /v1/monitoring/drift and the drift report before trusting forecasts.
+          __dashboardUid__: greenops-live
+          __panelId__: "8"
+        labels:
+          severity: critical
+          team: greenops
