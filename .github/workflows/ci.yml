@@ -53,6 +53,9 @@ jobs:
       - name: Promotion gates
         run: python -m solarwind.devices.gates check --serve serve
       - name: Serving contract against the real bundle
+        env:
+          PREDICTOR: bundle
+          SERVE_DIR: serve
         run: python -m pytest -q tests/serving
 
   docker-smoke:
