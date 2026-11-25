@@ -1,4 +1,5 @@
 {
+  "generated_at": "2026-11-25T21:01:57Z",
   "passed": true,
   "tasks": {
     "sunlight": {
@@ -20,14 +21,14 @@
       "name": "beats persistence",
       "task": "sunlight",
       "passed": true,
-      "detail": "MAE 0.5369 vs persistence 0.5731 (ratio 0.937, must be below 1)"
+      "detail": "MAE 0.5311 vs persistence 0.5725 (ratio 0.928, must be below 1)"
     },
     {
       "gate": "G1",
       "name": "beats persistence",
       "task": "hubwind",
       "passed": true,
-      "detail": "MAE 0.7305 vs persistence 0.7492 (ratio 0.975, must be below 1)"
+      "detail": "MAE 0.6465 vs persistence 0.6706 (ratio 0.964, must be below 1)"
     },
     {
       "gate": "G2",
@@ -55,14 +56,14 @@
       "name": "sane model output",
       "task": "sunlight",
       "passed": true,
-      "detail": "raw output 1.735 to 7.564 (allowed -1.20 to 13.20)"
+      "detail": "raw output 2.274 to 7.204 (allowed -1.20 to 13.20)"
     },
     {
       "gate": "G3",
       "name": "sane model output",
       "task": "hubwind",
       "passed": true,
-      "detail": "raw output 1.220 to 12.825 (allowed -4.00 to 44.00)"
+      "detail": "raw output 1.821 to 12.042 (allowed -4.00 to 44.00)"
     },
     {
       "gate": "G3",
@@ -83,14 +84,14 @@
       "name": "per-site error",
       "task": "sunlight",
       "passed": true,
-      "detail": "worst site Kalaburagi MAE 0.5452 = 1.02x pooled 0.5369 (limit 1.5x)"
+      "detail": "worst site Pavagada MAE 0.5476 = 1.03x pooled 0.5311 (limit 1.5x)"
     },
     {
       "gate": "G4",
       "name": "per-site error",
       "task": "hubwind",
       "passed": true,
-      "detail": "worst site Gadag MAE 0.8002 = 1.10x pooled 0.7305 (limit 1.5x)"
+      "detail": "worst site Gadag MAE 0.6622 = 1.02x pooled 0.6465 (limit 1.5x)"
     },
     {
       "gate": "G5",
@@ -118,14 +119,14 @@
       "name": "5% input noise",
       "task": "sunlight",
       "passed": true,
-      "detail": "MAE 0.5369 -> 0.5656 (+5.3%, limit 10%)"
+      "detail": "MAE 0.5311 -> 0.5569 (+4.9%, limit 10%)"
     },
     {
       "gate": "G6",
       "name": "5% input noise",
       "task": "hubwind",
       "passed": true,
-      "detail": "MAE 0.7305 -> 0.7621 (+4.3%, limit 10%)"
+      "detail": "MAE 0.6465 -> 0.6668 (+3.1%, limit 10%)"
     },
     {
       "gate": "G6",
@@ -160,7 +161,7 @@
       "name": "split and thresholds from training days",
       "task": "bundle",
       "passed": true,
-      "detail": "split is the project split; cloudy/low-wind cuts recomputed from training days match"
+      "detail": "each model's window is valid; its cut-offs recompute from its own training days"
     },
     {
       "gate": "G7",

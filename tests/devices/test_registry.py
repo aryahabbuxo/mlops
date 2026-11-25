@@ -2,6 +2,7 @@
 
 import json
 from datetime import date
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -200,6 +201,177 @@ def test_cli_register_status_promote_exit_codes(reg, make_bundle, capsys):
     assert reg_main(["register", "--serve", str(a)]) == 0
     assert reg_main(["register", "--serve", str(b)]) == 0
     assert reg_main(["status"]) == 0
-    assert reg_main(["promote", "--task", "sunlight"]) == 1  # blocked: 0.9 is far worse than 0.5
+    who = ["--reason", "test", "--approved-by", "model owner"]
+    assert reg_main(["promote", "--task", "sunlight", *who]) == 1  # 0.9 is far worse than 0.5
     assert "BLOCKED" in capsys.readouterr().out
-    assert reg_main(["promote", "--task", "sunlight", "--force"]) == 0
+    assert reg_main(["promote", "--task", "sunlight", "--force", *who]) == 0
+    assert reg_main(["export", "--out", "history.json"]) == 0
+
+
+# ---------- Phase 3: reasons, approvers, same-window comparison, mixed releases ----------
+NEW = {"train_end": "2024-12-31", "val_end": "2025-12-31"}
+
+
+@pytest.fixture(scope="module")
+def make_newer(tmp_path_factory, weather, fitted):
+    """A bundle trained on a LATER window, with cut-offs fitted on that window's training days."""
+    rows = [(s, "solar") for s in pipe.SOLAR_SITES] + [(s, "wind") for s in pipe.WIND_SITES]
+    sites = pd.DataFrame(
+        {
+            "site": [r[0] for r in rows],
+            "source_type": [r[1] for r in rows],
+            "lat": [14.0 + i for i in range(len(rows))],
+            "lon": [76.0 + i for i in range(len(rows))],
+        }
+    )
+    tr = weather[weather["date"] <= pd.Timestamp(NEW["train_end"])]
+    cloudy = tr.groupby("site").sun.quantile(0.25)
+    low = tr.groupby("site").v_hub.quantile(0.20)
+
+    def build(name: str) -> object:
+        out = tmp_path_factory.mktemp(name) / "serve"
+        tasks = [
+            bundle.TaskExport("sunlight", "ridge", fitted["sun"]["ridge"], {"val_mae": 0.45}),
+            bundle.TaskExport("hubwind", "hgb", fitted["wind"]["hgb"], {"val_mae": 0.65}),
+            bundle.TaskExport("lowwind", "hgb_clf", fitted["clf"]["hgb_clf"], {"val_pr_auc": 0.4}),
+        ]
+        bundle.export_bundle(
+            out, weather=weather, sites=sites, cloudy_cut=cloudy, low_cut=low, tasks=tasks,
+            git_commit="def5678", specs_sha256="deadbeefdeadbeef", **NEW,
+        )  # fmt: skip
+        return out
+
+    return build
+
+
+def _comparison(tmp_path, cand_dir, champ_dir, task="sunlight", eligible=True):
+    def ids(d):
+        m = json.loads((d / "manifest.json").read_text())
+        return {t: f"{e['algo']}-{e['sha256'][:8]}" for t, e in m["tasks"].items()}
+
+    path = tmp_path / "comparison.json"
+    row = {"metric": "mae", "champion": 0.60, "challenger": 0.58, "change_pct": -3.3}
+    row |= {"eligible": eligible, "verdict": "better" if eligible else "worse"}
+    path.write_text(
+        json.dumps(
+            {
+                "window": {"start": "2026-01-01", "end": "2026-09-30"},
+                "champion": {"models": ids(champ_dir)},
+                "challenger": {"models": ids(cand_dir)},
+                "tasks": {task: row},
+            }
+        )
+    )
+    return path
+
+
+def test_export_writes_each_models_window_and_cutoffs(make_newer):
+    m = json.loads((make_newer("n1") / "manifest.json").read_text())
+    assert m["tasks"]["sunlight"]["split"] == NEW
+    assert set(m["tasks"]["sunlight"]["cuts"]) == set(pipe.SOLAR_SITES)
+    assert set(m["tasks"]["lowwind"]["cuts"]) == set(pipe.WIND_SITES)
+    assert m["tasks"]["hubwind"]["cuts"] == {}
+    assert bundle.task_split(m, "lowwind") == (NEW["train_end"], NEW["val_end"])
+
+
+def test_old_bundles_fall_back_to_the_bundle_wide_split():
+    m = {"split": {"train_end": "a", "val_end": "b"}, "tasks": {"sunlight": {}}}
+    assert bundle.task_split(m, "sunlight") == ("a", "b")
+
+
+def test_register_records_the_window_and_the_reason(reg, make_bundle, make_newer):
+    reg.register(make_bundle("p1", "hgb", 0.5))
+    reg.register(make_newer("p2"), reason="drift alert: newer data")
+    sun = {v["version"]: v for v in reg.status()["sunlight"]}
+    assert sun[2]["train_end"] == NEW["train_end"]
+    assert sun[2]["registered_reason"] == "drift alert: newer data"
+
+
+def test_promotion_needs_a_matching_better_comparison(reg, make_bundle, make_newer, tmp_path):
+    a, b = make_bundle("p3", "hgb", 0.5), make_newer("p4")
+    reg.register(a)
+    reg.register(b)
+    with pytest.raises(RegistryError, match="no same-window comparison"):
+        reg.promote("sunlight", comparison=tmp_path / "missing.json")
+    with pytest.raises(RegistryError, match="not better on the same days"):
+        reg.promote("sunlight", comparison=_comparison(tmp_path, b, a, eligible=False))
+    with pytest.raises(RegistryError, match="different challenger"):
+        reg.promote("sunlight", comparison=_comparison(tmp_path, a, a))
+    done = reg.promote(
+        "sunlight", reason="better on 2026", approved_by="model owner",
+        comparison=_comparison(tmp_path, b, a),
+    )  # fmt: skip
+    assert done["sunlight"]["champion"] == 2
+    assert "same-window mae" in done["sunlight"]["gate"]
+    v2 = {v["version"]: v for v in reg.status()["sunlight"]}[2]
+    assert v2["promoted_reason"] == "better on 2026"
+    assert v2["promoted_by"] == "model owner"
+
+
+def test_mixed_release_keeps_each_model_with_its_own_window(reg, make_bundle, make_newer, tmp_path):
+    from solarwind.devices import gates
+
+    a, b = make_bundle("p5", "hgb", 0.5), make_newer("p6")
+    reg.register(a)
+    reg.register(b)
+    reg.promote("sunlight")  # library call: the comparison is checked by the CLI
+    out = tmp_path / "served"
+    m = reg.materialize(out, base_dir=a)
+    old = json.loads((a / "manifest.json").read_text())
+    new = json.loads((b / "manifest.json").read_text())
+    assert m["tasks"]["sunlight"]["split"] == NEW
+    assert m["tasks"]["lowwind"]["split"] == old["split"]
+    for site in pipe.SOLAR_SITES:
+        assert m["sites"][site]["cloudy_cut"] == new["sites"][site]["cloudy_cut"]
+    for site in pipe.WIND_SITES:
+        assert m["sites"][site]["low_cut"] == old["sites"][site]["low_cut"]
+    assert m["split"] == old["split"]  # bundle-wide split = the earliest window
+    p = BundlePredictor(out)
+    assert gates._g7_split(p).passed, gates._g7_split(p).detail
+    assert p.forecast("pavagada", date(2026, 6, 1))["model"]["algo"].startswith("ridge")
+
+
+def test_rollback_records_its_reason_and_export_lists_everything(reg, make_bundle, make_newer):
+    reg.register(make_bundle("p7", "hgb", 0.5))
+    reg.register(make_newer("p8"), reason="newer data")
+    reg.promote("sunlight", reason="better", approved_by="model owner")
+    reg.rollback("sunlight", reason="practice")
+    rows = reg.export("history.json")
+    v2 = next(r for r in rows if r["task"] == "sunlight" and r["version"] == 2)
+    assert v2["rolled_back_reason"] == "practice" and v2["promoted_by"] == "model owner"
+    assert v2["reason"] == "practice" and v2["date"]  # the fields /v1/ops/status reads
+    saved = json.loads(Path("history.json").read_text())
+    assert saved == json.loads(json.dumps(rows, default=str))
+
+
+def test_export_summary_shows_promotion_and_refusal(reg, make_bundle, make_newer):
+    reg.register(make_bundle("p9", "hgb", 0.5))
+    reg.register(make_newer("p10"), reason="newer data")
+    reg.promote("sunlight", reason="better on the same days", approved_by="model owner")
+    rows = {(r["task"], r["version"]): r for r in reg.export("history.json")}
+    v2 = rows[("sunlight", 2)]
+    assert v2["reason"] == "better on the same days" and v2["approved_by"] == "model owner"
+    assert len(v2["date"]) == 10
+    assert rows[("sunlight", 1)]["approved_by"] is None  # registered, never promoted
+
+
+def test_a_version_promoted_again_after_a_rollback_shows_the_promotion():
+    v = {
+        "gates": "passed",
+        "aliases": ["champion"],
+        "registered_at": "2026-11-25T18:55:29Z",
+        "registered_reason": "drift alert",
+        "promoted_at": "2026-11-25T19:11:43Z",
+        "promoted_reason": "re-promoted after the drill",
+        "promoted_by": "model owner",
+        "rolled_back_at": "2026-11-25T19:10:29Z",
+        "rolled_back_reason": "rollback drill",
+    }
+    row = registry._history_row("sunlight", v)
+    assert (row["reason"], row["approved_by"]) == ("re-promoted after the drill", "model owner")
+
+    rolled_back_last = {**v, "rolled_back_at": "2026-11-25T19:12:00Z"}
+    row = registry._history_row("sunlight", rolled_back_last)
+    assert (row["reason"], row["approved_by"]) == ("rollback drill", None)
+
+    assert registry._history_row("sunlight", {"gates": "passed"})["date"] is None

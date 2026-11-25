@@ -49,9 +49,11 @@ curl -fsS https://<service>.onrender.com/metrics | grep greenops_
 curl -fsS https://<service>.onrender.com/v1/ops/status
 curl -fsS "https://<service>.onrender.com/v1/monitoring/drift?scenario=cloudy_monsoon"
 curl -fsSI https://<service>.onrender.com/reports/drift_cloudy_monsoon.html
+curl -fsSI https://<service>.onrender.com/ops.html
 ```
-`/ops.html` serves the ops page once it is in `web/`. The first drift call per scenario computes it (well under a second
-locally; slower on the free tier's CPU share), later calls are cached.
+Open `https://<service>.onrender.com/ops.html` for the operations page. The first drift call per
+scenario computes it (well under a second locally; slower on the free tier's CPU share), later
+calls are cached.
 
 ## Keep it awake (required on free tier)
 

@@ -231,7 +231,14 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--export", type=Path, metavar="DIR", help="also write the serving bundle")
     parser.add_argument("--train-end", help="override split.train_end from params.yaml")
     parser.add_argument("--val-end", help="override split.val_end from params.yaml")
+    parser.add_argument(
+        "--results",
+        type=Path,
+        default=OUT,
+        help="where to write the result tables (a candidate uses its own folder)",
+    )
     args = parser.parse_args(argv)
+    out = args.results
 
     pipe.use_params()
     if args.train_end or args.val_end:
@@ -239,7 +246,7 @@ def main(argv: list[str] | None = None) -> None:
     print(f"split: train <= {pipe.TRAIN_END}, validation <= {pipe.VAL_END}, test after")
 
     devices.warn_if_placeholder()
-    OUT.mkdir(parents=True, exist_ok=True)
+    out.mkdir(parents=True, exist_ok=True)
     d = pipe.load_nasa()
     sun, wind = pipe.build_frames(d)
     sun_df, sun_models = pipe.regression_planners(sun, pipe.SUN_FEATS)
@@ -262,10 +269,10 @@ def main(argv: list[str] | None = None) -> None:
     )  # fmt: skip
     dev = device_error(d, sun_df, wind_df)
 
-    reg.round(5).to_csv(OUT / "regression_results.csv", index=False)
-    clf.round(5).to_csv(OUT / "low_wind_results.csv", index=False)
-    dev.round(5).to_csv(OUT / "device_error.csv", index=False)
-    (OUT / "selection.json").write_text(json.dumps(picks, indent=2))
+    reg.round(5).to_csv(out / "regression_results.csv", index=False)
+    clf.round(5).to_csv(out / "low_wind_results.csv", index=False)
+    dev.round(5).to_csv(out / "device_error.csv", index=False)
+    (out / "selection.json").write_text(json.dumps(picks, indent=2))
 
     metrics = {}
     for task, pick in picks.items():
@@ -277,14 +284,14 @@ def main(argv: list[str] | None = None) -> None:
             r = reg[(reg.task == task) & (reg.planner == pick) & (reg.split == "test")].iloc[0]
             metrics[f"{task}_test_mae"] = round(float(r.mae), 4)
             metrics[f"{task}_test_ratio_to_naive"] = round(float(r.ratio_to_naive), 4)
-    (OUT / "metrics.json").write_text(json.dumps(metrics, indent=2))
+    (out / "metrics.json").write_text(json.dumps(metrics, indent=2))
 
     tb_dir = tracking.log_tensorboard(
         reg, clf, dev, picks, git_commit=git_commit(), specs_sha256=sha256(SPECS_CSV)
     )
     print("selected on validation:", picks)
     print("TensorBoard run:", tb_dir, " (tensorboard --logdir runs/tb)")
-    print("files in", OUT.resolve())
+    print("files in", out.resolve())
     if args.export:
         manifest = export_champions(
             args.export, d, picks, reg, clf,

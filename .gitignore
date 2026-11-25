@@ -27,3 +27,6 @@ runs/tb/*
 /serve_shadow
 /serve_bad
 logs/
+/serve_v2
+/results/device_models_v2
+

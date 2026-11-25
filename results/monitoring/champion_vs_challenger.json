@@ -1,0 +1,64 @@
+{
+  "generated_at": "2026-11-25T18:53:14Z",
+  "window": {
+    "start": "2026-01-01",
+    "end": "2026-09-30"
+  },
+  "tolerance": 0.02,
+  "champion": {
+    "split": {
+      "train_end": "2023-12-31",
+      "val_end": "2024-12-31"
+    },
+    "git_commit": "17dd951",
+    "models": {
+      "sunlight": "hgb-01f5da66",
+      "hubwind": "ridge-8a5b79e4",
+      "lowwind": "logistic-df49f764"
+    }
+  },
+  "challenger": {
+    "split": {
+      "train_end": "2024-12-31",
+      "val_end": "2025-12-31"
+    },
+    "git_commit": "254bf0a",
+    "models": {
+      "sunlight": "ridge-d122d55b",
+      "hubwind": "ridge-22dd1a9a",
+      "lowwind": "hgb_clf-39376d36"
+    }
+  },
+  "tasks": {
+    "sunlight": {
+      "metric": "mae",
+      "champion": 0.6004,
+      "challenger": 0.5791,
+      "persistence": 0.6397,
+      "change_pct": -3.56,
+      "days": 1092,
+      "verdict": "better",
+      "eligible": true
+    },
+    "hubwind": {
+      "metric": "mae",
+      "champion": 0.6761,
+      "challenger": 0.6735,
+      "persistence": 0.7077,
+      "change_pct": -0.39,
+      "days": 1092,
+      "verdict": "better",
+      "eligible": true
+    },
+    "lowwind": {
+      "metric": "pr_auc",
+      "champion": 0.6196,
+      "challenger": 0.5103,
+      "persistence": 0.4466,
+      "change_pct": -17.64,
+      "days": 1092,
+      "verdict": "worse",
+      "eligible": false
+    }
+  }
+}
