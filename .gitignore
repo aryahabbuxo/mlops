@@ -26,7 +26,7 @@ runs/tb/*
 !runs/tb/.gitkeep
 /serve_shadow
 /serve_bad
-<<<<<<< logs/
+logs/
 /serve_v2
 /results/device_models_v2
->>>>>>> origin/phase3
+
