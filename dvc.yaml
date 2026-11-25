@@ -113,6 +113,9 @@ stages:
 
   train_device_models:
     cmd: python -m solarwind.devices.train --export serve && python make_results_md.py
+    params:
+      - split.train_end
+      - split.val_end
     deps:
       - data/raw/nasa
       - config/sites.csv
@@ -154,3 +157,21 @@ stages:
     outs:
       - results/gates/report.json:
           cache: false
+
+  monitor:
+    cmd: >-
+      python -m solarwind.monitoring.drift check --scenario none
+      && python -m solarwind.monitoring.performance
+      && python -m solarwind.monitoring.report --all
+    deps:
+      - serve
+      - src/solarwind/monitoring
+    metrics:
+      - results/monitoring/drift_latest.json:
+          cache: false
+    outs:
+      - results/monitoring/performance.csv:
+          cache: false
+      - results/monitoring/performance_lowwind.csv:
+          cache: false
+      - web/reports          

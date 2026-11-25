@@ -1,0 +1,18 @@
+{
+  "generated_at": "2026-11-22T10:00:00Z",
+  "scenario": "cloudy_monsoon",
+  "reference": {"start": "2019-10-30", "end": "2023-12-31"},
+  "current": {"start": "2026-07-03", "end": "2026-09-30"},
+  "thresholds": {"warn": 0.10, "alert": 0.25},
+  "status": "ALERT",
+  "features": [
+    {"kind": "solar", "feature": "sun", "psi": 0.41, "status": "ALERT"},
+    {"kind": "solar", "feature": "T2M", "psi": 0.04, "status": "OK"},
+    {"kind": "wind", "feature": "WS10M", "psi": 0.03, "status": "OK"}
+  ],
+  "prediction_drift": {
+    "sunlight": {"psi": 0.33, "status": "ALERT"},
+    "hubwind": {"psi": 0.02, "status": "OK"}
+  },
+  "report_url": "/reports/drift_cloudy_monsoon.html"
+}

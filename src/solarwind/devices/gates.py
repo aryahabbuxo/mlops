@@ -513,6 +513,7 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--out", default="serve_bad")
     b.add_argument("--mode", choices=BAD_MODES, default="shuffled")
     args = parser.parse_args(argv)
+    pipe.use_params()  # G7 checks the bundle against the versioned split in params.yaml
     try:
         if args.cmd == "check":
             report = check(args.serve, args.champion)
