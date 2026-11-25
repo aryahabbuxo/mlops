@@ -1,6 +1,6 @@
 """Serve-time inference: one as-of date in, tomorrow's forecast and device outputs out.
 
-`BundlePredictor` is the real backend behind Kartik's `Predictor` protocol
+`BundlePredictor` is the real backend behind the serving `Predictor` protocol
 (`solarwind.serving.predictor`). It loads the verified bundle (`serve/`), builds features with the
 SAME `sun_frame` / `wind_frame` code the models were trained on, and never fetches anything:
 the weather comes from the baked snapshot ("replay": pick an as-of date, forecast the next day).

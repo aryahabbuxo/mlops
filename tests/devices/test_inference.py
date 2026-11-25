@@ -98,7 +98,7 @@ def test_every_site_forecasts_on_a_sample_of_days(predictor):
             assert r["weather_used"]["fallback"] is False
 
 
-def test_response_is_valid_for_kartiks_schema(predictor):
+def test_response_is_valid_for_the_serving_schema(predictor):
     from solarwind.serving.schemas import ForecastResponse
 
     for site in (SOLAR, WIND):
@@ -325,7 +325,7 @@ def test_missing_bundle_fails_loudly(tmp_path):
         BundlePredictor(tmp_path / "nope")
 
 
-# ---------- through Kartik's real app ----------
+# ---------- through the real serving app ----------
 @pytest.fixture
 def client(bundle_dir, monkeypatch):
     from solarwind.serving import app as app_module
