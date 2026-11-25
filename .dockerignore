@@ -16,3 +16,9 @@ __pycache__/
 .env
 .env.*
 logs/
+# results/ is mostly training output; only the files /v1/ops/status reads go into the image.
+results/**
+!results/gates/report.json
+!results/registry/history.json
+!results/monitoring/performance.csv
+!results/monitoring/drift_latest.json

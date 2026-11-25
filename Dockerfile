@@ -36,6 +36,9 @@ COPY serve ./serve
 # The browser UI (served from the app's static mount at /). Optional: the app falls back to a
 # pure JSON API when WEB_DIR is absent.
 COPY web ./web
+# Gate report, registry history, monitoring results: read by /v1/ops/status. .dockerignore keeps
+# everything else in results/ out; a missing file only empties its section of the status.
+COPY results ./results
 
 # logs/ holds the prediction log (PRED_LOG); created here so the non-root user can write it.
 RUN mkdir -p /app/logs && useradd --create-home --uid 1000 appuser && chown -R appuser /app
