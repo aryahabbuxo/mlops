@@ -26,3 +26,5 @@ runs/tb/*
 !runs/tb/.gitkeep
 /serve_shadow
 /serve_bad
+/serve_v2
+/results/device_models_v2
