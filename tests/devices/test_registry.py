@@ -339,5 +339,17 @@ def test_rollback_records_its_reason_and_export_lists_everything(reg, make_bundl
     rows = reg.export("history.json")
     v2 = next(r for r in rows if r["task"] == "sunlight" and r["version"] == 2)
     assert v2["rolled_back_reason"] == "practice" and v2["promoted_by"] == "model owner"
+    assert v2["reason"] == "practice" and v2["date"]  # the fields /v1/ops/status reads
     saved = json.loads(Path("history.json").read_text())
     assert saved == json.loads(json.dumps(rows, default=str))
+
+
+def test_export_summary_shows_promotion_and_refusal(reg, make_bundle, make_newer):
+    reg.register(make_bundle("p9", "hgb", 0.5))
+    reg.register(make_newer("p10"), reason="newer data")
+    reg.promote("sunlight", reason="better on the same days", approved_by="model owner")
+    rows = {(r["task"], r["version"]): r for r in reg.export("history.json")}
+    v2 = rows[("sunlight", 2)]
+    assert v2["reason"] == "better on the same days" and v2["approved_by"] == "model owner"
+    assert len(v2["date"]) == 10
+    assert rows[("sunlight", 1)]["approved_by"] is None  # registered, never promoted

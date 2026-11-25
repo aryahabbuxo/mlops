@@ -422,12 +422,27 @@ def _keep_own_window(entry: dict, task: str, base: dict) -> None:
         entry["cuts"] = {s: e[key] for s, e in base["sites"].items() if key and key in e}
 
 
+def _history_row(task: str, v: dict) -> dict:
+    """One version, plus the short fields /v1/ops/status shows: reason, approver and date of the
+    last thing that happened to it (rollback, promotion or registration)."""
+    if v.get("rolled_back_at"):
+        reason, by, when = v.get("rolled_back_reason"), None, v["rolled_back_at"]
+    elif v.get("promoted_at"):
+        reason, by, when = v.get("promoted_reason"), v.get("promoted_by"), v["promoted_at"]
+    else:
+        reason, by, when = v.get("registered_reason"), None, v.get("registered_at")
+    if v.get("gates") == "failed" and "champion" not in v.get("aliases", []):
+        reason = f"refused: gates failed ({v.get('gates_failed') or 'see gates'})"
+    summary = {"reason": reason, "approved_by": by, "date": (when or "")[:10] or None}
+    return {"task": task, **v, **summary}
+
+
 def export(out: Path | str = HISTORY_FILE) -> list[dict]:
     """Every version of every task, with aliases, scores, gates, windows, reasons and approvers.
 
     The registry itself is a local file; this JSON is what the live dashboard reads.
     """
-    rows = [{"task": task, **v} for task, versions in status().items() for v in versions]
+    rows = [_history_row(task, v) for task, versions in status().items() for v in versions]
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(rows, indent=2, default=str) + "\n", encoding="utf-8")

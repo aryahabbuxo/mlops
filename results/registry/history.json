@@ -23,7 +23,10 @@
     "promoted_reason": null,
     "promoted_by": null,
     "rolled_back_at": null,
-    "rolled_back_reason": null
+    "rolled_back_reason": null,
+    "reason": null,
+    "approved_by": null,
+    "date": "2026-11-10"
   },
   {
     "task": "sunlight",
@@ -49,7 +52,10 @@
     "promoted_reason": "re-promoted after rollback drill; 3.56% lower error than v1 on the same Jan-Sep 2026 days",
     "promoted_by": "model owner, platform owner",
     "rolled_back_at": "2026-11-25T19:10:29Z",
-    "rolled_back_reason": "rollback drill: proving a bad release can be undone in one command"
+    "rolled_back_reason": "rollback drill: proving a bad release can be undone in one command",
+    "reason": "rollback drill: proving a bad release can be undone in one command",
+    "approved_by": null,
+    "date": "2026-11-25"
   },
   {
     "task": "hubwind",
@@ -75,7 +81,10 @@
     "promoted_reason": null,
     "promoted_by": null,
     "rolled_back_at": null,
-    "rolled_back_reason": null
+    "rolled_back_reason": null,
+    "reason": null,
+    "approved_by": null,
+    "date": "2026-11-10"
   },
   {
     "task": "hubwind",
@@ -101,7 +110,10 @@
     "promoted_reason": "0.39% lower error than v1 on the same Jan-Sep 2026 days; all 7 gates passed",
     "promoted_by": "model owner, platform owner",
     "rolled_back_at": null,
-    "rolled_back_reason": null
+    "rolled_back_reason": null,
+    "reason": "0.39% lower error than v1 on the same Jan-Sep 2026 days; all 7 gates passed",
+    "approved_by": "model owner, platform owner",
+    "date": "2026-11-25"
   },
   {
     "task": "lowwind",
@@ -126,7 +138,10 @@
     "promoted_reason": null,
     "promoted_by": null,
     "rolled_back_at": null,
-    "rolled_back_reason": null
+    "rolled_back_reason": null,
+    "reason": null,
+    "approved_by": null,
+    "date": "2026-11-10"
   },
   {
     "task": "lowwind",
@@ -151,6 +166,9 @@
     "promoted_reason": null,
     "promoted_by": null,
     "rolled_back_at": null,
-    "rolled_back_reason": null
+    "rolled_back_reason": null,
+    "reason": "refused: gates failed (G2)",
+    "approved_by": null,
+    "date": "2026-11-25"
   }
 ]
