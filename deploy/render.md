@@ -41,6 +41,18 @@ curl -fsS -X POST https://<service>.onrender.com/v1/forecast \
 ```
 Open `https://<service>.onrender.com/` for the UI.
 
+Phase 3 endpoints (after the `v2.0-phase3` deploy):
+
+```bash
+curl -fsS https://<service>.onrender.com/version          # api_version 0.2.0, deployed commit, model ids
+curl -fsS https://<service>.onrender.com/metrics | grep greenops_
+curl -fsS https://<service>.onrender.com/v1/ops/status
+curl -fsS "https://<service>.onrender.com/v1/monitoring/drift?scenario=cloudy_monsoon"
+curl -fsSI https://<service>.onrender.com/reports/drift_cloudy_monsoon.html
+```
+`/ops.html` serves the ops page once it is in `web/`. The first drift call per scenario computes it (well under a second
+locally; slower on the free tier's CPU share), later calls are cached.
+
 ## Keep it awake (required on free tier)
 
 Render free services sleep after ~15 min idle; the next request pays the ~68 s cold start and may
@@ -49,5 +61,10 @@ time out. Add an external pinger hitting `/health` every 5 minutes:
 ## Notes
 
 - No runtime secrets: the model bundle is baked into the image.
+- The prediction log (`/app/logs/predictions.jsonl`), the request counters and the drift cache live
+  in the container. Render's disk is ephemeral, so they reset on every restart or redeploy; fine
+  for a demo, and the reason a long-lived setup would ship the log elsewhere.
+- To watch the live service from the local Grafana, uncomment the Render job in
+  `monitoring/prometheus.yml`; it already names the live host.
 - To update: Render → the service → Manual Deploy → "Deploy latest reference" after CI publishes a
   new `:latest`.
