@@ -56,6 +56,9 @@ DRIFT_PSI = Gauge("greenops_drift_psi", "Population stability index", ["feature"
 DRIFT_STATUS = Gauge("greenops_drift_status", "Drift status: 0 OK, 1 WARN, 2 ALERT", ["scenario"])
 
 
+DRIFT_STATUS_CODES = {"OK": 0, "WARN": 1, "ALERT": 2}
+
+
 @dataclass
 class ServiceStats:
     """Counters the ops status endpoint reports; reset when the process restarts."""
@@ -124,3 +127,20 @@ def log_prediction(record: dict, path: Path) -> None:
             handle.write(json.dumps(record, default=str) + "\n")
     except OSError as exc:
         logger.warning("prediction log write failed", path=str(path), error=str(exc))
+
+
+def record_drift(result: dict) -> None:
+    """Input features are labelled kind.feature (T2M is watched for both kinds of site)."""
+    scenario = result["scenario"]
+    for row in result["features"]:
+        feature = f"{row['kind']}.{row['feature']}"
+        DRIFT_PSI.labels(feature=feature, scenario=scenario).set(_gauge_value(row["psi"]))
+    for task, row in result["prediction_drift"].items():
+        DRIFT_PSI.labels(feature=f"prediction.{task}", scenario=scenario).set(
+            _gauge_value(row["psi"])
+        )
+    DRIFT_STATUS.labels(scenario=scenario).set(DRIFT_STATUS_CODES[result["status"]])
+
+
+def _gauge_value(psi: float | None) -> float:
+    return float("nan") if psi is None else psi

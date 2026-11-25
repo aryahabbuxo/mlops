@@ -79,6 +79,9 @@ NASA POWER ──► dvc repro train_device_models ──► serve/ (models + we
 | API | `src/solarwind/serving/` |
 | Front end | `web/index.html` (one file, no dependencies, works offline) |
 | Container and CI | `Dockerfile`, `.github/workflows/ci.yml` |
+| Drift (PSI, scenarios, Evidently reports) | `src/solarwind/monitoring/`, `.github/workflows/drift.yml` |
+| Metrics, prediction log, ops status | `src/solarwind/serving/monitoring.py`, `ops.py`, `drift_service.py` |
+| Local monitoring stack | `docker-compose.yml`, `monitoring/` |
 
 ## What makes it production-minded
 
@@ -126,15 +129,95 @@ Base URL is the same origin as the page. Errors are JSON with `detail` and `requ
 | `GET /v1/sites`, `GET /v1/devices` | the eight sites; every device spec row with its origin |
 | `POST /v1/forecast` | `{site, as_of, perturb{wind_shift_ms, sun_scale}, compare}` gives the next day's outlook, device results, the data mode (`snapshot`, `what-if`, `persistence`) and an optional LSTM shadow |
 | `GET /v1/replay?site&start&end` | forecast against actual for each day |
+| `GET /v1/monitoring/drift?scenario=` | PSI per input feature and per model output for `none`, `cloudy_monsoon`, `sensor_fault` or `heatwave`, with an overall OK / WARN / ALERT (shape in `web/sample/drift.json`) |
+| `GET /v1/ops/status` | one snapshot for the ops page: service counters, served models, data, gates, registry, last drift check, monthly performance (shape in `web/sample/ops_status.json`) |
+| `GET /metrics` | Prometheus metrics (not in the OpenAPI schema) |
+| `GET /reports/drift_<scenario>.html` | Evidently drift report, when the image was built with `web/reports` pulled |
 
-Status codes: 404 unknown site, 409 date outside 2019-10-30 to 2026-09-30, 503 models still loading.
+Status codes: 404 unknown site, 409 date outside 2019-10-30 to 2026-09-30, 422 unknown drift
+scenario, 503 models still loading (or a drift check on the stub backend).
 
 ## Deployment and branches
 
-Work goes to `phase2` by pull request. One reviewed merge moves `phase2` to `main`, followed by the
-tag `v1.0-phase2`. The workflow's `publish-image` job runs only on `main` or by hand, and pushes the
+Work goes to `phase3` by pull request, and one pull request moves `phase3` to `main`, followed by
+the tag `v2.0-phase3` (Phase 2 shipped as `v1.0-phase2`). `main` is protected: changes arrive only by
+pull request, and `lint-and-test`, `model-gates` and `docker-smoke` must pass first; force pushes and
+deletion are blocked. The workflow's `publish-image` job runs only on `main` or by hand, and pushes the
 container image to GHCR; Render (free tier, `deploy/render.md`) runs that image on port 8000; `deploy/cloud-run.md` is the upgrade path. After a publish, redeploy with automatic redeployment on commit using Render Deploy Hook, then Deploy latest reference.
 Required GitHub secrets: `DAGSHUB_USER`, `DAGSHUB_TOKEN` (to pull the pinned bundle in CI), and `RENDER_DEPLOY_HOOK` to automate deployment.
+
+## Phase 3: monitoring and operations
+
+### What the service records
+
+- **Prediction log.** Every `POST /v1/forecast` appends one JSON line to `PRED_LOG`
+  (default `logs/predictions.jsonl`): time, request id, site, as-of date, model ids, prediction,
+  fallback flag, mode and latency. A write failure is logged as a warning and never fails the
+  forecast.
+- **Prometheus metrics** at `/metrics`: `greenops_requests_total{endpoint,status}`,
+  `greenops_request_latency_seconds{endpoint}`, `greenops_forecast_fallback_total{site}`,
+  `greenops_prediction{task,site}`, `greenops_model_info{task,version,model_id}`,
+  `greenops_drift_psi{feature,scenario}` and `greenops_drift_status{scenario}` (0 OK, 1 WARN,
+  2 ALERT). Only API routes are counted, labelled by route template; `/metrics`, `/health`,
+  `/ready` and static files are not traffic.
+- **Drift.** `/v1/monitoring/drift` runs the numpy PSI from `solarwind.monitoring.drift` on the
+  bundle's weather snapshot. Each scenario is computed once per process (about 0.25 s) and cached,
+  and every call updates the drift gauges. Evidently is only used offline for the HTML reports; it
+  is not in the image.
+- **Ops status.** `/v1/ops/status` reads `results/gates/report.json`,
+  `results/registry/history.json`, `results/monitoring/performance.csv` and
+  `results/monitoring/drift_latest.json`. Any missing or malformed file gives an empty section,
+  never an error. A drift check made in the running process replaces the file's drift result.
+  Model versions come from `manifest.champions`, which `registry materialize` writes; a bundle
+  trained directly reports `unknown`.
+
+Counters, the latency window and the prediction log live in the container, so they reset when
+Render restarts the service.
+
+### Local stack
+
+```bash
+dvc pull serve                       # the API container mounts serve/ read-only
+docker compose up -d                 # api, prometheus, grafana, mlflow, tensorboard
+python monitoring/traffic.py         # 200 forecasts so the graphs have data
+curl "http://localhost:8000/v1/monitoring/drift?scenario=sensor_fault"
+```
+
+| Service | URL | Notes |
+|---|---|---|
+| API | http://localhost:8000 | real bundle, prediction log in `./logs` |
+| Prometheus | http://localhost:9090 | scrapes `api:8000/metrics` every 15 s |
+| Grafana | http://localhost:3000 | "GreenOps live" dashboard, anonymous viewing; admin password from `GRAFANA_ADMIN_PASSWORD` (default `admin`) |
+| MLflow UI | http://localhost:5001 | the local `mlflow.db` registry |
+| TensorBoard | http://localhost:6006 | `runs/tb` |
+
+The dashboard has eight panels: requests per second, p95 latency, error rate, fallbacks, mean
+prediction by site, model versions, drift PSI per feature (0.10 and 0.25 lines) and drift status.
+The alert rule "Drift ALERT" fires when any scenario's status reaches 2.
+
+### Drift in CI
+
+`.github/workflows/drift.yml` runs on every push to `main`, every Monday at 06:00 UTC, and by hand
+with a scenario picker. It pulls the bundle, runs the PSI check, performance drift and the Evidently
+reports, writes a PSI table to the run summary and uploads the reports as the `drift-reports`
+artifact. It is a separate workflow and `continue-on-error`, so drift never blocks publishing or
+deploying; the quality gates do. `docker-smoke` and `publish-image` also pull `web/reports` so the
+live site serves the reports.
+
+### Settings
+
+| Variable | Default | Used for |
+|---|---|---|
+| `PRED_LOG` | `logs/predictions.jsonl` | prediction log path |
+| `RESULTS_DIR` | `results` | files read by `/v1/ops/status` |
+| `GITHUB_REPOSITORY` | `aryahabbuxo/mlops` | links in `/v1/ops/status` |
+| `GRAFANA_ADMIN_PASSWORD` | `admin` | local Grafana admin login |
+
+### Governance in the repository
+
+`.github/CODEOWNERS` names the owner of the models, the training pipeline and the pinned bundle;
+`.github/pull_request_template.md` asks every change for tests, gates, no data or secrets, and a
+reason for a model change. The policy itself is in [docs/governance.md](docs/governance.md).
 
 ## Documents
 
@@ -143,7 +226,8 @@ Required GitHub secrets: `DAGSHUB_USER`, `DAGSHUB_TOKEN` (to pull the pinned bun
 | [docs/model_card.md](docs/model_card.md) | What the models do, results, gates, limits |
 | [docs/data_card.md](docs/data_card.md) | Source, sites, cleaning, split, limits |
 | [docs/model_risk.md](docs/model_risk.md) | Risk register with controls and evidence |
-| [docs/decisions.md](docs/decisions.md) | The 15 decisions and why |
+| [docs/decisions.md](docs/decisions.md) | The decisions and why |
+| [docs/governance.md](docs/governance.md) | Who may change what, and how a change is approved |
 | [RESULTS.md](RESULTS.md) | Generated result tables |
 | [HANDOFF.md](HANDOFF.md) | Project context and open items from Phase 1 |
 
@@ -153,7 +237,8 @@ Required GitHub secrets: `DAGSHUB_USER`, `DAGSHUB_TOKEN` (to pull the pinned bun
 - NASA POWER is model output, not station measurement.
 - Devices are simulations. The heater's certificate lapsed on 10 Apr 2023, so its values are typical collector values.
 - The model margins over persistence are small, and the calm-day alert is weaker on 2025 onward than on 2024.
-- Open risks: no automatic drift monitoring, no live data ingestion (see `docs/model_risk.md`, section 6).
+- Drift is measured on the replayed weather copy, not on live data; there is still no live data ingestion (see `docs/model_risk.md`, section 6).
+- Service counters and the prediction log reset when the container restarts.
 
 ## Phase 1: the data pipeline
 

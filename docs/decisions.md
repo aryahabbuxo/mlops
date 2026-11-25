@@ -70,3 +70,17 @@ Each person works on a branch, merges into `phase2` by pull request, and one pul
 
 **D15. Awareness product, not a control system.**
 The front end says what tomorrow's weather means for a lamp, a water heater and a small turbine, one day ahead, for eight sites. It shows the data mode, the model version and the margin over "tomorrow = today". It is not for grid, safety or money decisions (risk R18).
+
+**D16. Drift is measured with PSI against a seasonally matched reference, with fixed bands.**
+PSI below 0.10 is OK, 0.10 to 0.25 WARN, 0.25 or more ALERT; the overall status is the worst feature. These are the standard industry bands, fixed before looking at our results, and we will not loosen them to make a screen look green. The reference is training days (up to 2023-12-31) from the same calendar months as the window being checked, because weather is seasonal: comparing a monsoon with the yearly average would raise a false alarm every year.
+Evidence from the real data: 2024 and 2025 (normal years after training) reach WARN at most, never ALERT. July to September 2026, the warmest season in the record (25.9 C against 24.3 to 25.6 C), raises a real ALERT on temperature. Induced scenarios push their own feature to PSI 3.8 to 8.3 and leave the others unchanged.
+Drift is a signal for people, not a build failure: it never blocks a deploy (the gates do that). Evidence: `src/solarwind/monitoring/drift.py`, `tests/monitoring/test_drift.py`.
+Rejected: a fixed whole-year reference (false alarms every monsoon); thresholds tuned after seeing the data.
+
+**D17. Data drift and performance drift are reported separately.**
+Drift in the inputs does not by itself mean the forecasts got worse. `performance.py` replays every month after training and compares the model's error with "tomorrow = today" on the same days. Result: both regression models still beat persistence in every year (ratio 0.94 to 0.97), the absolute sunlight error is rising (0.54 to 0.60 kWh/m2), and the calm-day alert dipped in 2025 (PR-AUC 0.37 to 0.53) before recovering. So drift is present and its impact is measured, which is the evidence for retraining on newer data.
+Evidence: `results/monitoring/performance.csv`, `results/monitoring/performance_lowwind.csv`.
+
+**D18. Monitoring stack: numpy PSI in the API, Evidently for reports, Prometheus and Grafana locally.**
+The live API computes PSI with numpy, so the serving image stays small and drift can be induced on the public link. Evidently gives an independent per-column statistical test and the plots a reviewer reads; its HTML reports (about 4 MB each) are stored with DVC, not git (stage `monitor`). Prometheus and Grafana run with `docker compose up`, not on the free host.
+Rejected: Evidently inside the serving image (large); reports committed to git (history grows with every run).

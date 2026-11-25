@@ -186,3 +186,37 @@ class OpsStatusResponse(BaseModel):
     drift: DriftStatus | EmptySection
     performance: list[PerformanceRow]
     links: dict[str, str]
+
+
+class DateWindow(BaseModel):
+    start: str
+    end: str
+
+
+class DriftThresholds(BaseModel):
+    warn: float
+    alert: float
+
+
+class FeatureDrift(BaseModel):
+    kind: str
+    feature: str
+    psi: float | None
+    status: str
+
+
+class PredictionDrift(BaseModel):
+    psi: float | None
+    status: str
+
+
+class DriftResponse(BaseModel):
+    generated_at: str
+    scenario: str
+    reference: DateWindow
+    current: DateWindow
+    thresholds: DriftThresholds
+    status: str
+    features: list[FeatureDrift]
+    prediction_drift: dict[str, PredictionDrift]
+    report_url: str

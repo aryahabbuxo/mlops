@@ -84,6 +84,11 @@ class BundlePredictor:
             self._medians[site] = {c: float(tr[c].median()) for c in INPUT_COLS}
         self._frames: dict[str, pd.DataFrame] = {}
 
+    @property
+    def bundle(self) -> bundle_mod.Bundle:
+        """The loaded bundle (manifest, models, weather snapshot); the drift check reads it."""
+        return self._bundle
+
     # ---------- small helpers ----------
     def _key(self, site: str) -> str:
         key = str(site).strip().title()

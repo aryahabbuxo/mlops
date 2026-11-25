@@ -455,3 +455,36 @@ stages:
       hash: md5
       md5: d26a471eacf80aee59de6cb3859700be
       size: 4546
+  monitor:
+    cmd: python -m solarwind.monitoring.drift check --scenario none && python -m
+      solarwind.monitoring.performance && python -m solarwind.monitoring.report 
+      --all
+    deps:
+    - path: serve
+      hash: md5
+      md5: 0ccb1a30c80fcb03ca3dbdcf9081cf92.dir
+      size: 3119699
+      nfiles: 5
+    - path: src/solarwind/monitoring
+      hash: md5
+      md5: 95de08c38e9d2c5a37621cce973f472b.dir
+      size: 58944
+      nfiles: 8
+    outs:
+    - path: results/monitoring/drift_latest.json
+      hash: md5
+      md5: a38aa3b67bfb119ae814db07735bd900
+      size: 1210
+    - path: results/monitoring/performance.csv
+      hash: md5
+      md5: f41aa2eb8020f49a809b5726cedd3df0
+      size: 3151
+    - path: results/monitoring/performance_lowwind.csv
+      hash: md5
+      md5: 06a7ca6530573aeba2e08bef24b19a45
+      size: 428
+    - path: web/reports
+      hash: md5
+      md5: ba45c4dda11ca007b9fb4ad8e117174d.dir
+      size: 15678589
+      nfiles: 4
