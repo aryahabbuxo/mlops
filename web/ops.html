@@ -630,8 +630,8 @@ const MAP = (() => {
   };
 })();
 /* label offsets so neighbouring sites do not collide (map pixels) */
-const OFFSET = { pavagada: [44, -6], raichur: [52, -30], kalaburagi: [-10, -58], mysuru: [62, 8],
-  chitradurga: [-118, -44], gadag: [-122, -46], koppal: [20, -74], hassan: [-132, 6] };
+const OFFSET = { pavagada: [44, -52], raichur: [52, -30], kalaburagi: [-10, -58], mysuru: [62, 8],
+  chitradurga: [30, 64], gadag: [-122, -46], koppal: [20, -74], hassan: [-196, 4] };
 const pathOf = (pts) => pts.map((p, i) => `${i ? "L" : "M"}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join("") + "Z";
 
 function solarArt(x, y) {
