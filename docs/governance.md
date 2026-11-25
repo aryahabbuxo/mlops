@@ -13,10 +13,9 @@ below has an enforcement and evidence you can open.
 |---|---|---|
 | Model owner | Data, training, gates, registry, drift and performance monitoring, model card | Merge to `main` without the required checks; promote without a recorded reason |
 | Platform owner | API, Docker image, CI/CD, deployment, metrics, monitoring stack, access settings | Merge to `main` without the required checks |
-| Reviewer | Approves pull requests into `main` | Approve their own pull request (GitHub forbids it) |
 
-**Why:** two people are involved in anything users will see, so a single mistake or a single bad
-decision cannot reach the live site.
+**Why:** nothing users will see reaches the live site without passing the same automated checks,
+whoever wrote it, so a single mistake cannot slip through unnoticed.
 
 ## 2. Change control on `main`
 
@@ -24,7 +23,7 @@ decision cannot reach the live site.
 |---|---|---|
 | Every change reaches `main` through a pull request | GitHub branch protection on `main` | Settings > Branches screenshot |
 | A pull request merges only when `lint-and-test`, `model-gates` and `docker-smoke` pass | Required status checks | Pull request page, Actions run |
-| Approval by a second collaborator, rules apply to admins too | Branch protection | Settings > Branches |
+| No approval from another account is required; admins may bypass the rules only for an emergency fix, and the bypass shows on the pull request | Branch protection (0 approvals, admins not enforced) | Settings > Branches |
 | No force pushes, `main` cannot be deleted | Branch protection | Settings > Branches |
 | Model and pipeline files have named owners | `.github/CODEOWNERS` | The file |
 | Every pull request answers a checklist (tests, gates, no data or secrets, reason for a model change) | `.github/pull_request_template.md` | Any pull request |
