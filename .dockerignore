@@ -22,3 +22,5 @@ results/**
 !results/registry/history.json
 !results/monitoring/performance.csv
 !results/monitoring/drift_latest.json
+!results/monitoring/champion_vs_challenger.json
+!results/monitoring/performance_lowwind.csv

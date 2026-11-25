@@ -177,6 +177,35 @@ class PerformanceRow(BaseModel):
     persistence_mae: float | None
 
 
+class ComparisonTask(BaseModel):
+    task: str
+    metric: str | None
+    champion: float | None
+    challenger: float | None
+    persistence: float | None
+    change_pct: float | None
+    verdict: str
+    eligible: bool
+    champion_id: str | None
+    challenger_id: str | None
+
+
+class ComparisonStatus(BaseModel):
+    start: str | None
+    end: str | None
+    generated_at: str | None
+    tasks: list[ComparisonTask]
+
+
+class CalmDayRow(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
+    quarter: str
+    model_pr_auc: float | None
+    baseline_pr_auc: float | None
+    calm_days: int | None
+
+
 class OpsStatusResponse(BaseModel):
     service: ServiceStatus
     models: dict[str, ServedModel]
@@ -185,6 +214,8 @@ class OpsStatusResponse(BaseModel):
     registry: list[RegistryEntry]
     drift: DriftStatus | EmptySection
     performance: list[PerformanceRow]
+    comparison: ComparisonStatus | EmptySection
+    calm_day: list[CalmDayRow]
     links: dict[str, str]
 
 
