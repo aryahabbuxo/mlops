@@ -157,9 +157,10 @@ def test_predictions_are_observed_per_task_and_site(client, pred_log, sites):
 
 def test_model_info_lists_every_served_model(client):
     models = client.get("/version").json()["models"]
+    served = client.get("/v1/ops/status").json()["models"]  # registry version, or "unknown"
 
     for task, model_id in models.items():
-        labels = {"task": task, "version": "unknown", "model_id": model_id}
+        labels = {"task": task, "version": served[task]["version"], "model_id": model_id}
         assert REGISTRY.get_sample_value("greenops_model_info", labels) == 1.0
 
 
