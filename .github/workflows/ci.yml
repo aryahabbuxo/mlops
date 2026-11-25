@@ -116,6 +116,8 @@ jobs:
           curl -fsS http://localhost:8000/v1/ops/status | grep -q '"gates":{"passed":'
           curl -fsS 'http://localhost:8000/v1/monitoring/drift?scenario=cloudy_monsoon' \
             | grep -q '"scenario":"cloudy_monsoon"'
+          curl -fsS http://localhost:8000/ops.html | grep -q '/v1/ops/status'
+          curl -fsS http://localhost:8000/v1/ops/status | grep -q '"sunlight":{"version":"2"'
       - name: Container logs
         if: always()
         run: docker logs api || true
