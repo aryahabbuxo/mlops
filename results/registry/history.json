@@ -1,0 +1,156 @@
+[
+  {
+    "task": "sunlight",
+    "version": 1,
+    "aliases": [
+      "previous"
+    ],
+    "algo": "hgb",
+    "sha256": "01f5da66",
+    "metrics": {
+      "val_mae": 0.53692,
+      "test_mae": 0.57511,
+      "val_ratio_to_persistence": 0.93685
+    },
+    "git_commit": "17dd951",
+    "gates": "passed",
+    "gates_failed": "-",
+    "train_end": null,
+    "val_end": null,
+    "registered_at": "2026-11-10T18:43:18Z",
+    "registered_reason": null,
+    "promoted_at": null,
+    "promoted_reason": null,
+    "promoted_by": null,
+    "rolled_back_at": null,
+    "rolled_back_reason": null
+  },
+  {
+    "task": "sunlight",
+    "version": 2,
+    "aliases": [
+      "champion"
+    ],
+    "algo": "ridge",
+    "sha256": "d122d55b",
+    "metrics": {
+      "val_mae": 0.53114,
+      "test_mae": 0.57783,
+      "val_ratio_to_persistence": 0.92782
+    },
+    "git_commit": "254bf0a",
+    "gates": "passed",
+    "gates_failed": "-",
+    "train_end": "2024-12-31",
+    "val_end": "2025-12-31",
+    "registered_at": "2026-11-25T18:55:29Z",
+    "registered_reason": "Drift alert: Jul-Sep 2026 is the warmest season on record (temperature PSI 0.89); retrained on data up to 2024-12-31",
+    "promoted_at": "2026-11-25T19:11:43Z",
+    "promoted_reason": "re-promoted after rollback drill; 3.56% lower error than v1 on the same Jan-Sep 2026 days",
+    "promoted_by": "model owner, platform owner",
+    "rolled_back_at": "2026-11-25T19:10:29Z",
+    "rolled_back_reason": "rollback drill: proving a bad release can be undone in one command"
+  },
+  {
+    "task": "hubwind",
+    "version": 1,
+    "aliases": [
+      "previous"
+    ],
+    "algo": "ridge",
+    "sha256": "8a5b79e4",
+    "metrics": {
+      "val_mae": 0.73051,
+      "test_mae": 0.661,
+      "val_ratio_to_persistence": 0.975
+    },
+    "git_commit": "17dd951",
+    "gates": "passed",
+    "gates_failed": "-",
+    "train_end": null,
+    "val_end": null,
+    "registered_at": "2026-11-10T18:43:26Z",
+    "registered_reason": null,
+    "promoted_at": null,
+    "promoted_reason": null,
+    "promoted_by": null,
+    "rolled_back_at": null,
+    "rolled_back_reason": null
+  },
+  {
+    "task": "hubwind",
+    "version": 2,
+    "aliases": [
+      "champion"
+    ],
+    "algo": "ridge",
+    "sha256": "22dd1a9a",
+    "metrics": {
+      "val_mae": 0.64652,
+      "test_mae": 0.67456,
+      "val_ratio_to_persistence": 0.96407
+    },
+    "git_commit": "254bf0a",
+    "gates": "passed",
+    "gates_failed": "-",
+    "train_end": "2024-12-31",
+    "val_end": "2025-12-31",
+    "registered_at": "2026-11-25T18:55:44Z",
+    "registered_reason": "Drift alert: Jul-Sep 2026 is the warmest season on record (temperature PSI 0.89); retrained on data up to 2024-12-31",
+    "promoted_at": "2026-11-25T19:01:59Z",
+    "promoted_reason": "0.39% lower error than v1 on the same Jan-Sep 2026 days; all 7 gates passed",
+    "promoted_by": "model owner, platform owner",
+    "rolled_back_at": null,
+    "rolled_back_reason": null
+  },
+  {
+    "task": "lowwind",
+    "version": 1,
+    "aliases": [
+      "champion"
+    ],
+    "algo": "logistic",
+    "sha256": "df49f764",
+    "metrics": {
+      "val_pr_auc": 0.64995,
+      "test_pr_auc": 0.55998
+    },
+    "git_commit": "17dd951",
+    "gates": "passed",
+    "gates_failed": "-",
+    "train_end": null,
+    "val_end": null,
+    "registered_at": "2026-11-10T18:43:27Z",
+    "registered_reason": null,
+    "promoted_at": null,
+    "promoted_reason": null,
+    "promoted_by": null,
+    "rolled_back_at": null,
+    "rolled_back_reason": null
+  },
+  {
+    "task": "lowwind",
+    "version": 2,
+    "aliases": [
+      "challenger"
+    ],
+    "algo": "hgb_clf",
+    "sha256": "39376d36",
+    "metrics": {
+      "val_pr_auc": 0.45408,
+      "test_pr_auc": 0.50937
+    },
+    "git_commit": "254bf0a",
+    "gates": "failed",
+    "gates_failed": "G2",
+    "train_end": "2024-12-31",
+    "val_end": "2025-12-31",
+    "registered_at": "2026-11-25T18:55:45Z",
+    "registered_reason": "Drift alert: Jul-Sep 2026 is the warmest season on record (temperature PSI 0.89); retrained on data up to 2024-12-31",
+    "promoted_at": null,
+    "promoted_reason": null,
+    "promoted_by": null,
+    "rolled_back_at": null,
+    "rolled_back_reason": null
+  }
+]
