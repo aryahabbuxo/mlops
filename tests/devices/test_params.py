@@ -51,8 +51,9 @@ def test_split_dates_must_be_in_order():
         pipe.set_split("2025-12-31", "2024-12-31")
 
 
-def test_repository_params_match_the_deployed_bundle():
-    # params.yaml and the deployed bundle move together; skipped when serve/ is not pulled.
+def test_repository_params_are_the_window_of_a_deployed_model():
+    # params.yaml is the training window of the newest release: at least one deployed model must
+    # have been trained on it. Skipped when serve/ is not pulled.
     import json
     from pathlib import Path
 
@@ -60,5 +61,8 @@ def test_repository_params_match_the_deployed_bundle():
     manifest = root / "serve" / "manifest.json"
     if not manifest.is_file():
         pytest.skip("serve/ bundle not pulled")
-    split = json.loads(manifest.read_text(encoding="utf-8"))["split"]
-    assert pipe.read_split(root / "params.yaml") == (split["train_end"], split["val_end"])
+    from solarwind.devices import bundle
+
+    m = json.loads(manifest.read_text(encoding="utf-8"))
+    windows = {bundle.task_split(m, t) for t in m["tasks"]}
+    assert pipe.read_split(root / "params.yaml") in windows

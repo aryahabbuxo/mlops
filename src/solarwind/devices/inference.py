@@ -350,6 +350,7 @@ class BundlePredictor:
         With `truth`, inputs come from this predictor but truth and baseline from `truth`."""
         truth = truth or self
         kind = TASK_KIND[task]
+        train_end, val_end = (pd.Timestamp(d) for d in bundle_mod.task_split(self._manifest, task))
         parts = []
         for key, info in self._sites.items():
             if info["kind"] != kind or key not in self._by_site:
@@ -360,7 +361,9 @@ class BundlePredictor:
                 y, base = ref["low_next"], ref["low_today"].astype(float)
             else:
                 y, base = ref["target"], ref["today"]
-            keep = raw.notna() & y.notna() & base.notna() & (ref["split"] == split)
+            days = pd.to_datetime(ref["date"])
+            labels = np.where(days <= train_end, "train", np.where(days <= val_end, "val", "test"))
+            keep = raw.notna() & y.notna() & base.notna() & (labels == split)
             parts.append(
                 pd.DataFrame({"site": key, "date": ref["date"], "raw": raw, "y": y, "base": base})[
                     keep

@@ -204,13 +204,26 @@ def test_g7_fails_when_a_threshold_was_not_fitted_on_training_days(build, tmp_pa
     ]
 
 
-def test_g7_fails_when_the_split_is_not_the_project_split(build):
+def test_g7_fails_when_a_model_claims_a_window_its_cutoffs_did_not_come_from(build):
     out = build("tamper2")
     path = out / "manifest.json"
     m = json.loads(path.read_text())
-    m["split"]["val_end"] = "2025-12-31"
+    m["tasks"]["sunlight"]["split"] = {"train_end": "2024-12-31", "val_end": "2025-12-31"}
     path.write_text(json.dumps(m))
-    assert any("project split" in c.detail for c in gates.check(out).failed())
+    report = gates.check(out)
+    assert any("cloudy_cut" in c.detail for c in report.failed() if c.gate == "G7")
+
+
+def test_g7_fails_when_a_window_is_out_of_order(build):
+    out = build("tamper3")
+    path = out / "manifest.json"
+    m = json.loads(path.read_text())
+    m["tasks"]["hubwind"]["split"] = {"train_end": "2025-12-31", "val_end": "2024-12-31"}
+    path.write_text(json.dumps(m))
+    with pytest.raises(gates.GateError, match="no validation rows"):
+        gates.check(out)  # nothing can be scored, so the whole check stops
+    check = gates._g7_split(BundlePredictor(out))
+    assert not check.passed and "hubwind split" in check.detail
 
 
 def test_g7_fails_when_no_metrics_are_claimed(build):
@@ -345,6 +358,7 @@ def test_cli_prints_gate_results_and_blocks(reg, good, bad, capsys):
     assert reg.main(["register", "--serve", str(good)]) == 0
     assert reg.main(["register", "--serve", str(bad["scaled"])]) == 0
     assert reg.main(["status"]) == 0
-    assert reg.main(["promote", "--task", "sunlight"]) == 1
+    who = ["--reason", "test", "--approved-by", "model owner"]
+    assert reg.main(["promote", "--task", "sunlight", *who]) == 1
     out = capsys.readouterr().out
     assert "gates passed" in out and "gates=failed" in out and "BLOCKED" in out
