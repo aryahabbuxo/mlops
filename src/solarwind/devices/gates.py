@@ -27,7 +27,7 @@ import json
 import shutil
 import sys
 from dataclasses import asdict, dataclass
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -503,6 +503,10 @@ def _fit_sunlight(p: BundlePredictor, columns: list[str], *, shuffle: bool):
 
 
 # ---------- CLI ----------
+def _now() -> str:
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -522,8 +526,9 @@ def main(argv: list[str] | None = None) -> int:
             print(report.render())
             if args.out:
                 Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-                Path(args.out).write_text(
-                    json.dumps(report.to_dict(), indent=2) + "\n", encoding="utf-8"
+                stamped = {"generated_at": _now(), **report.to_dict()}
+                Path(args.out).write_text(  # LF on every OS, so dvc.lock matches what git stores
+                    json.dumps(stamped, indent=2) + "\n", encoding="utf-8", newline="\n"
                 )
             return 0 if report.passed else 1
         path = make_bad(args.serve, args.out, args.mode)

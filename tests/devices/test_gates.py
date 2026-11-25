@@ -262,7 +262,9 @@ def test_missing_validation_rows_stop_the_gates(good, monkeypatch):
 def test_cli_check_exit_codes_and_report_file(good, bad, tmp_path, capsys):
     out = tmp_path / "r" / "report.json"
     assert gates.main(["check", "--serve", str(good), "--out", str(out)]) == 0
-    assert json.loads(out.read_text())["passed"] is True
+    saved = json.loads(out.read_text())
+    assert saved["passed"] is True
+    assert saved["generated_at"].endswith("Z")  # /v1/ops/status shows it as the report date
     assert gates.main(["check", "--serve", str(bad["scaled"]), "--champion", str(good)]) == 1
     assert "FAIL" in capsys.readouterr().out
 
