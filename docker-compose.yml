@@ -1,6 +1,11 @@
-# Local stack: the forecast API on the stub predictor, plus TensorBoard reading the
-# (initially empty) runs/tb folder that Minnie's training will fill. TensorBoard mounts the
-# folder read-only so it starts before any event files exist.
+# Local MLOps stack: the forecast API on the real bundle, Prometheus scraping it, Grafana with
+# the "GreenOps live" dashboard, the MLflow UI and TensorBoard.
+#
+#   dvc pull serve            # the API mounts ./serve
+#   docker compose up --build
+#   python monitoring/traffic.py
+#
+# API :8000   Prometheus :9090   Grafana :3000   MLflow :5001   TensorBoard :6006
 
 services:
   api:
@@ -12,18 +17,63 @@ services:
     ports:
       - "8000:8000"
     environment:
-      PREDICTOR: stub
+      PREDICTOR: bundle
+      SERVE_DIR: /app/serve
+      PRED_LOG: /app/logs/predictions.jsonl
       LOG_LEVEL: INFO
+    volumes:
+      - ./serve:/app/serve:ro
+      - ./logs:/app/logs
     healthcheck:
       test: ["CMD", "python", "-c", "import sys, urllib.request; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=2).status == 200 else 1)"]
       interval: 30s
       timeout: 3s
       retries: 3
-      start_period: 10s
+      start_period: 60s
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.15.1
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    depends_on:
+      - api
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.4.15
+    ports:
+      - "3000:3000"
+    environment:
+      # Anonymous read-only viewing for the demo; sign in as admin to edit.
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH: /var/lib/grafana/dashboards/greenops_live.json
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  mlflow:
+    # Reads the local registry. Artifact paths in mlflow.db are absolute host paths, so runs,
+    # metrics, params and model versions show here but artifact previews do not.
+    image: ghcr.io/mlflow/mlflow:v3.17.1
+    command: mlflow ui --backend-store-uri sqlite:////mlflow/mlflow.db --host 0.0.0.0 --port 5001
+    ports:
+      - "5001:5001"
+    volumes:
+      - ./mlflow.db:/mlflow/mlflow.db
+      - ./mlruns:/mlflow/mlruns:ro
     restart: unless-stopped
 
   tensorboard:
-    # Pinned to the TF image that carries TensorBoard; align the tag with Minnie's tensorflow-cpu pin.
+    # Pinned to the TF image that carries TensorBoard; align the tag with Arya Habbu's tensorflow-cpu pin.
     image: tensorflow/tensorflow:2.20.0
     command: tensorboard --logdir /runs/tb --host 0.0.0.0 --port 6006
     ports:

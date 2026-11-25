@@ -1,0 +1,5 @@
+# Changes to the models, the training pipeline and the pinned bundle need Arya Habbu's review.
+/src/solarwind/devices/ @aryahabbuxo
+/dvc.lock               @aryahabbuxo
+/dvc.yaml               @aryahabbuxo
+/specs/                 @aryahabbuxo

@@ -7,15 +7,21 @@ Aliases move, versions never change:
     previous    the champion before the last promotion (one-step rollback)
 
 Commands (from the repo root, after `dvc repro train_device_models` has written serve/):
-    python -m solarwind.devices.registry register [--serve serve]
+    python -m solarwind.devices.registry register [--serve serve] [--reason "..."]
     python -m solarwind.devices.registry status
-    python -m solarwind.devices.registry promote [--task sunlight] [--version 3] [--force]
-    python -m solarwind.devices.registry rollback [--task sunlight]
+    python -m solarwind.devices.registry promote --task sunlight --reason "..." --approved-by "..."
+    python -m solarwind.devices.registry rollback [--task sunlight] [--reason "..."]
     python -m solarwind.devices.registry materialize --out serve
+    python -m solarwind.devices.registry export --out results/registry/history.json
 
 `register` runs the quality gates (gates.py, G1-G7) on every new version and tags it
 gates=passed|failed. `promote` refuses a version whose gates failed, and one that is worse than
-the champion on validation by more than TOLERANCE; `--force` overrides both (and says so).
+the champion on validation by more than TOLERANCE; from the command line it also needs the
+same-window comparison (solarwind.monitoring.compare) to call the version better, plus a reason and
+an approver, which are stored as tags. `--force` overrides the checks (and says so).
+
+Every model version carries its own training window and cut-offs, so a release can mix versions
+(for example sunlight v2 with calm-day v1); `materialize` keeps each model with its own window.
 """
 
 from __future__ import annotations
@@ -33,12 +39,15 @@ import mlflow
 from mlflow import MlflowClient
 
 from solarwind.devices import bundle
+from solarwind.devices import pipeline as pipe
 from solarwind.devices.gates import PRIMARY, TOLERANCE, check_regression  # noqa: F401
 
 os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")  # quiet CLI output
 TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI", "sqlite:///mlflow.db")
 EXPERIMENT = "greenops-registry"
 CHAMPION, CHALLENGER, PREVIOUS = "champion", "challenger", "previous"
+COMPARISON_FILE = Path("results/monitoring/champion_vs_challenger.json")
+HISTORY_FILE = Path("results/registry/history.json")
 RUN_GATES = True  # register() runs the quality gates; promote() then requires gates=passed
 
 
@@ -81,7 +90,9 @@ def _metrics(mv) -> dict[str, float]:
 
 
 # ---------- register ----------
-def register(serve_dir: Path | str = "serve", *, run_gates: bool | None = None) -> dict[str, dict]:
+def register(
+    serve_dir: Path | str = "serve", *, run_gates: bool | None = None, reason: str | None = None
+) -> dict[str, dict]:
     """Register the models in a bundle as new versions (an unchanged model is not duplicated).
 
     The first version of a task becomes the champion; later ones become the challenger.
@@ -104,7 +115,7 @@ def register(serve_dir: Path | str = "serve", *, run_gates: bool | None = None) 
         if same:
             mv, created = same[-1], False
         else:
-            mv, created = _create_version(client, serve, manifest, task, entry), True
+            mv, created = _create_version(client, serve, manifest, task, entry, reason), True
         champion = _alias_version(client, name, CHAMPION)
         if champion is None:
             client.set_registered_model_alias(name, CHAMPION, mv.version)
@@ -162,7 +173,9 @@ def fp(entry: dict) -> str:
     return hashlib.sha256(payload.encode()).hexdigest()[:16]
 
 
-def _create_version(client, serve: Path, manifest: dict, task: str, entry: dict):
+def _create_version(
+    client, serve: Path, manifest: dict, task: str, entry: dict, reason: str | None = None
+):
     name = model_name(task)
     with mlflow.start_run(run_name=f"register/{task}") as run, tempfile.TemporaryDirectory() as tmp:
         stage = Path(tmp)
@@ -178,17 +191,63 @@ def _create_version(client, serve: Path, manifest: dict, task: str, entry: dict)
     client.set_model_version_tag(name, mv.version, "algo", entry["algo"])
     client.set_model_version_tag(name, mv.version, "git_commit", manifest["git_commit"])
     client.set_model_version_tag(name, mv.version, "metrics", json.dumps(entry["metrics"]))
-    client.set_model_version_tag(
-        name, mv.version, "registered_at", datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
-    )
+    client.set_model_version_tag(name, mv.version, "registered_at", _now())
+    train_end, val_end = bundle.task_split(manifest, task)
+    client.set_model_version_tag(name, mv.version, "train_end", train_end)
+    client.set_model_version_tag(name, mv.version, "val_end", val_end)
+    if reason:
+        client.set_model_version_tag(name, mv.version, "registered_reason", reason)
     return client.get_model_version(name, mv.version)
+
+
+def _now() -> str:
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+def _model_id(mv) -> str:
+    return f"{mv.tags.get('algo')}-{mv.tags.get('sha256', '')[:8]}"
+
+
+def _check_comparison(task: str, cand, champ, path: Path) -> str:
+    """The same-window comparison must be about THESE two versions and call the candidate better."""
+    if not Path(path).is_file():
+        raise RegistryError(
+            f"{task}: BLOCKED. no same-window comparison at {path}; run "
+            "python -m solarwind.monitoring.compare --champion serve --challenger <bundle>"
+        )
+    result = json.loads(Path(path).read_text(encoding="utf-8"))
+    row = result.get("tasks", {}).get(task)
+    if row is None:
+        raise RegistryError(f"{task}: BLOCKED. the comparison has no row for this task")
+    if result["challenger"]["models"].get(task) != _model_id(cand):
+        raise RegistryError(f"{task}: BLOCKED. the comparison is about a different challenger")
+    if result["champion"]["models"].get(task) != _model_id(champ):
+        raise RegistryError(f"{task}: BLOCKED. the comparison is about a different champion")
+    window = f"{result['window']['start']} to {result['window']['end']}"
+    text = (
+        f"same-window {row['metric']} {row['challenger']} vs champion {row['champion']} "
+        f"({row['change_pct']:+.2f}%, {window})"
+    )
+    if not row.get("eligible"):
+        raise RegistryError(f"{task}: BLOCKED. not better on the same days: {text}")
+    return text
 
 
 # ---------- promote / rollback ----------
 def promote(
-    task: str | None = None, version: int | None = None, *, force: bool = False
+    task: str | None = None,
+    version: int | None = None,
+    *,
+    force: bool = False,
+    reason: str | None = None,
+    approved_by: str | None = None,
+    comparison: Path | str | None = None,
 ) -> dict[str, dict]:
-    """Move the champion alias to a version (default: the challenger). One task or all."""
+    """Move the champion alias to a version (default: the challenger). One task or all.
+
+    With `comparison` (the CLI always passes it), the same-window comparison must also call the
+    candidate better. `reason` and `approved_by` are stored on the promoted version.
+    """
     client = _client()
     out = {}
     for t in [task] if task else list(bundle.TASKS):
@@ -217,9 +276,16 @@ def promote(
             if not ok:
                 raise RegistryError(f"{t}: BLOCKED. {text}")
             verdict = f"passed: gates G1-G7 and {text}"
+            if comparison is not None:
+                verdict += f"; {_check_comparison(t, cand, champ, Path(comparison))}"
         if champ is not None:
             client.set_registered_model_alias(name, PREVIOUS, champ.version)
         client.set_registered_model_alias(name, CHAMPION, cand.version)
+        stamp = {"promoted_at": _now(), "promotion": verdict[:900]}
+        stamp.update({"promoted_reason": reason} if reason else {})
+        stamp.update({"promoted_by": approved_by} if approved_by else {})
+        for key, value in stamp.items():
+            client.set_model_version_tag(name, cand.version, key, value)
         if _alias_version(client, name, CHALLENGER) is not None and (
             _alias_version(client, name, CHALLENGER).version == cand.version
         ):
@@ -231,7 +297,7 @@ def promote(
     return out
 
 
-def rollback(task: str | None = None) -> dict[str, dict]:
+def rollback(task: str | None = None, reason: str | None = None) -> dict[str, dict]:
     """Put the previous champion back. The version being rolled back becomes `challenger`."""
     client = _client()
     out = {}
@@ -246,6 +312,9 @@ def rollback(task: str | None = None) -> dict[str, dict]:
         client.set_registered_model_alias(name, CHAMPION, prev.version)
         client.set_registered_model_alias(name, CHALLENGER, champ.version)
         client.delete_registered_model_alias(name, PREVIOUS)
+        client.set_model_version_tag(name, champ.version, "rolled_back_at", _now())
+        if reason:
+            client.set_model_version_tag(name, champ.version, "rolled_back_reason", reason)
         out[t] = {"champion": int(prev.version), "rolled_back_from": int(champ.version)}
     if not out and not task:
         raise RegistryError("nothing to roll back")
@@ -277,6 +346,16 @@ def status() -> dict[str, list[dict]]:
                 "metrics": _metrics(v),
                 "git_commit": v.tags.get("git_commit"),
                 "gates": v.tags.get("gates"),
+                "gates_failed": v.tags.get("gates_failed", ""),
+                "train_end": v.tags.get("train_end"),
+                "val_end": v.tags.get("val_end"),
+                "registered_at": v.tags.get("registered_at"),
+                "registered_reason": v.tags.get("registered_reason"),
+                "promoted_at": v.tags.get("promoted_at"),
+                "promoted_reason": v.tags.get("promoted_reason"),
+                "promoted_by": v.tags.get("promoted_by"),
+                "rolled_back_at": v.tags.get("rolled_back_at"),
+                "rolled_back_reason": v.tags.get("rolled_back_reason"),
             }
             for v in _versions(client, name)
         ]
@@ -317,11 +396,61 @@ def materialize(out_dir: Path | str, base_dir: Path | str | None = None) -> dict
             dest = out / entry["file"]
             dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(model_file, dest)
+            _keep_own_window(entry, task, manifest)
             manifest["tasks"][task] = entry
-    manifest["built_at"] = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    for task, entry in manifest["tasks"].items():  # each model brings its own cut-offs
+        key = bundle.TASK_CUT.get(task)
+        for site, cut in entry.get("cuts", {}).items():
+            if key and site in manifest["sites"]:
+                manifest["sites"][site][key] = cut
+    earliest = min(bundle.TASKS, key=lambda t: bundle.task_split(manifest, t)[0])
+    manifest["split"] = dict(manifest["tasks"][earliest]["split"])  # bundle-wide = earliest
+    manifest["built_at"] = _now()
     manifest["champions"] = {t: _champion_version(client, t) for t in bundle.TASKS}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     return manifest
+
+
+def _keep_own_window(entry: dict, task: str, base: dict) -> None:
+    """A version registered before per-model windows existed takes the base bundle's window and
+    cut-offs, which are the ones it was trained with (the base is the bundle being replaced)."""
+    if "split" not in entry:
+        train_end, val_end = bundle.task_split(base, task)
+        entry["split"] = {"train_end": train_end, "val_end": val_end}
+    if "cuts" not in entry:
+        key = bundle.TASK_CUT.get(task)
+        entry["cuts"] = {s: e[key] for s, e in base["sites"].items() if key and key in e}
+
+
+def _history_row(task: str, v: dict) -> dict:
+    """One version, plus the short fields /v1/ops/status shows: reason, approver and date of the
+    last thing that happened to it (rollback, promotion or registration).
+
+    A version can be rolled back and promoted again, so the latest timestamp decides; on a tie
+    (same second) the later step in that order wins."""
+    events = [
+        (v.get("rolled_back_at"), v.get("rolled_back_reason"), None),
+        (v.get("promoted_at"), v.get("promoted_reason"), v.get("promoted_by")),
+        (v.get("registered_at"), v.get("registered_reason"), None),
+    ]
+    stamped = [e for e in events if e[0]]
+    when, reason, by = max(stamped, key=lambda e: e[0]) if stamped else (None, None, None)
+    if v.get("gates") == "failed" and "champion" not in v.get("aliases", []):
+        reason = f"refused: gates failed ({v.get('gates_failed') or 'see gates'})"
+    summary = {"reason": reason, "approved_by": by, "date": (when or "")[:10] or None}
+    return {"task": task, **v, **summary}
+
+
+def export(out: Path | str = HISTORY_FILE) -> list[dict]:
+    """Every version of every task, with aliases, scores, gates, windows, reasons and approvers.
+
+    The registry itself is a local file; this JSON is what the live dashboard reads.
+    """
+    rows = [_history_row(task, v) for task, versions in status().items() for v in versions]
+    out = Path(out)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(rows, indent=2, default=str) + "\n", encoding="utf-8")
+    return rows
 
 
 def _champion_version(client: MlflowClient, task: str) -> int:
@@ -339,7 +468,14 @@ def _print_status(data: dict[str, list[dict]]) -> None:
             metric = PRIMARY[task][0]
             val = v["metrics"].get(metric, float("nan"))
             head = f"  v{v['version']:<3} {tag:<20} {v['algo']:<12}"
-            print(f"{head} {metric}={val:<8.4f} gates={v['gates'] or '-':<7} {v['sha256']}")
+            window = f"trained to {v['train_end']}" if v.get("train_end") else ""
+            print(
+                f"{head} {metric}={val:<8.4f} gates={v['gates'] or '-':<7} {v['sha256']}  {window}"
+            )
+            for label, key in (("why", "registered_reason"), ("promoted", "promoted_reason")):
+                if v.get(key):
+                    by = f" (approved by {v['promoted_by']})" if key == "promoted_reason" else ""
+                    print(f"        {label}: {v[key]}{by}")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -348,20 +484,28 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("register", help="register serve/ as new versions (and run the gates)")
     p.add_argument("--serve", default="serve")
     p.add_argument("--no-gates", action="store_true", help="skip the quality gates")
+    p.add_argument("--reason", help="why this version exists (stored as a tag)")
     sub.add_parser("status", help="show versions and aliases")
     p = sub.add_parser("promote", help="challenger -> champion (blocked if worse than champion)")
     p.add_argument("--task", choices=bundle.TASKS)
     p.add_argument("--version", type=int)
     p.add_argument("--force", action="store_true")
+    p.add_argument("--reason", required=True, help="why it is promoted (stored as a tag)")
+    p.add_argument("--approved-by", required=True, help="who approved it (stored as a tag)")
+    p.add_argument("--comparison", default=str(COMPARISON_FILE), help="same-window comparison")
     p = sub.add_parser("rollback", help="champion -> previous champion")
     p.add_argument("--task", choices=bundle.TASKS)
+    p.add_argument("--reason", help="why it is rolled back (stored as a tag)")
     p = sub.add_parser("materialize", help="write a serving bundle from the champions")
     p.add_argument("--out", default="serve")
     p.add_argument("--base", default=None, help="bundle to take snapshot/sites from")
+    p = sub.add_parser("export", help="write every version's history as JSON")
+    p.add_argument("--out", default=str(HISTORY_FILE))
     args = parser.parse_args(argv)
+    pipe.use_params()  # the gates run during register check the split in params.yaml
     try:
         if args.cmd == "register":
-            result = register(args.serve, run_gates=not args.no_gates)
+            result = register(args.serve, run_gates=not args.no_gates, reason=args.reason)
             for task, r in result.items():
                 state = "new" if r["created"] else "unchanged"
                 gate = f"  gates {r['gates']}" if r.get("gates") else ""
@@ -369,15 +513,22 @@ def main(argv: list[str] | None = None) -> int:
         elif args.cmd == "status":
             _print_status(status())
         elif args.cmd == "promote":
-            for task, r in promote(args.task, args.version, force=args.force).items():
+            done = promote(
+                args.task, args.version, force=args.force, reason=args.reason,
+                approved_by=args.approved_by, comparison=args.comparison,
+            )  # fmt: skip
+            for task, r in done.items():
                 print(f"{task:<9} champion v{r['champion']} (was v{r['previous']})")
                 print(f"          gate {r['gate']}")
         elif args.cmd == "rollback":
-            for task, r in rollback(args.task).items():
+            for task, r in rollback(args.task, args.reason).items():
                 print(
                     f"{task:<9} champion v{r['champion']} (rolled back from "
                     f"v{r['rolled_back_from']})"
                 )
+        elif args.cmd == "export":
+            rows = export(args.out)
+            print(f"{len(rows)} versions written to {Path(args.out).resolve()}")
         else:
             m = materialize(args.out, args.base)
             print("serving bundle written to", Path(args.out).resolve())

@@ -35,6 +35,17 @@ SNAPSHOT_COLUMNS = ["site", "date", "sun", "T2M", "WS10M", "WS50M"]
 TRUSTED_TYPES = frozenset({"sklearn.ensemble._hist_gradient_boosting.predictor.TreePredictor"})
 
 
+def task_split(manifest: dict, task: str) -> tuple[str, str]:
+    """(train_end, val_end) of one task. Each model carries its own training window, so a release
+    can mix model versions; bundles written before that fall back to the bundle-wide split."""
+    split = manifest["tasks"][task].get("split") or manifest["split"]
+    return split["train_end"], split["val_end"]
+
+
+# Which per-site cut-off each task depends on (sunlight: cloud streak; lowwind: low-wind flag).
+TASK_CUT = {"sunlight": "cloudy_cut", "lowwind": "low_cut"}
+
+
 class BundleError(RuntimeError):
     """The bundle is missing, tampered with, or built for a different environment."""
 
@@ -148,6 +159,7 @@ def export_bundle(
     snap_path = out_dir / SNAPSHOT_FILE
     snap.to_csv(snap_path, index=False, lineterminator="\n")
 
+    site_entries = _site_entries(sites, cloudy_cut, low_cut)
     entries = {}
     for t in sorted(tasks, key=lambda x: TASKS.index(x.name)):
         rel = f"models/{t.name}/model.skops"
@@ -160,6 +172,12 @@ def export_bundle(
             "input_columns": inputs,
             "site_columns": site_cols,
             "metrics": {k: round(float(v), 5) for k, v in t.metrics.items()},
+            "split": {"train_end": train_end, "val_end": val_end},
+            "cuts": {
+                site: e[TASK_CUT[t.name]]
+                for site, e in site_entries.items()
+                if t.name in TASK_CUT and TASK_CUT[t.name] in e
+            },
         }
         if t.alert_threshold is not None:
             entries[t.name]["alert_threshold"] = round(float(t.alert_threshold), 5)
@@ -179,7 +197,7 @@ def export_bundle(
             "date_min": str(snap["date"].min()),
             "date_max": str(snap["date"].max()),
         },
-        "sites": _site_entries(sites, cloudy_cut, low_cut),
+        "sites": site_entries,
         "tasks": entries,
         "shadow": {},
     }

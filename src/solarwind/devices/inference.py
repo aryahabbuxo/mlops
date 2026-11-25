@@ -1,6 +1,6 @@
 """Serve-time inference: one as-of date in, tomorrow's forecast and device outputs out.
 
-`BundlePredictor` is the real backend behind Kartik's `Predictor` protocol
+`BundlePredictor` is the real backend behind the serving `Predictor` protocol
 (`solarwind.serving.predictor`). It loads the verified bundle (`serve/`), builds features with the
 SAME `sun_frame` / `wind_frame` code the models were trained on, and never fetches anything:
 the weather comes from the baked snapshot ("replay": pick an as-of date, forecast the next day).
@@ -84,6 +84,11 @@ class BundlePredictor:
             self._medians[site] = {c: float(tr[c].median()) for c in INPUT_COLS}
         self._frames: dict[str, pd.DataFrame] = {}
 
+    @property
+    def bundle(self) -> bundle_mod.Bundle:
+        """The loaded bundle (manifest, models, weather snapshot); the drift check reads it."""
+        return self._bundle
+
     # ---------- small helpers ----------
     def _key(self, site: str) -> str:
         key = str(site).strip().title()
@@ -99,6 +104,11 @@ class BundlePredictor:
 
     def _versions(self) -> dict[str, str]:
         return {n: f"{t['algo']}-{t['sha256'][:8]}" for n, t in self._tasks.items()}
+
+    def _registry_versions(self) -> dict[str, str]:
+        """Registry version per task, written by `registry materialize`; empty for a fresh train."""
+        champions = self._manifest.get("champions") or {}
+        return {task: str(v) for task, v in champions.items()}
 
     def _algo(self, kind: str) -> str:
         t = self._tasks
@@ -350,6 +360,7 @@ class BundlePredictor:
         With `truth`, inputs come from this predictor but truth and baseline from `truth`."""
         truth = truth or self
         kind = TASK_KIND[task]
+        train_end, val_end = (pd.Timestamp(d) for d in bundle_mod.task_split(self._manifest, task))
         parts = []
         for key, info in self._sites.items():
             if info["kind"] != kind or key not in self._by_site:
@@ -360,7 +371,9 @@ class BundlePredictor:
                 y, base = ref["low_next"], ref["low_today"].astype(float)
             else:
                 y, base = ref["target"], ref["today"]
-            keep = raw.notna() & y.notna() & base.notna() & (ref["split"] == split)
+            days = pd.to_datetime(ref["date"])
+            labels = np.where(days <= train_end, "train", np.where(days <= val_end, "val", "test"))
+            keep = raw.notna() & y.notna() & base.notna() & (labels == split)
             parts.append(
                 pd.DataFrame({"site": key, "date": ref["date"], "raw": raw, "y": y, "base": base})[
                     keep
@@ -412,7 +425,9 @@ class BundlePredictor:
             "algo": "bundle",
             "sites": sorted(s.lower() for s in self._sites),
             "models": self._versions(),
+            "versions": self._registry_versions(),
             "snapshot": {"start": m["snapshot"]["date_min"], "end": m["snapshot"]["date_max"]},
+            "snapshot_rows": m["snapshot"].get("rows"),
             "git_commit": m["git_commit"],
             "built_at": m["built_at"],
             "metrics": {n: t["metrics"] for n, t in self._tasks.items()},

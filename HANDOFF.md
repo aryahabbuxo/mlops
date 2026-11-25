@@ -327,7 +327,7 @@ Data tracked by DVC (never by Git): `data/raw/cea` (`cea.dvc`), `data/raw/nasa` 
 
 The refactor into the package was checked byte for byte earlier. The relabel changed `karnataka_daily.csv`, `parse_failures.txt` and `flags.txt` (one new line) as expected; `nasa_summary.csv` did not change. `dvc repro` is a no-op on a second run; `dvc status` is clean. No MLflow was touched and no model was trained.
 
-The remote is a local folder (`C:\Users\kartik\dvc-remote-mlops`), outside the repo, and was not changed. **Teammates cannot reach it, so do not tell them to `dvc pull` until it is swapped for the shared remote (DagsHub or Google Drive) and that change is committed.** Credentials with `--local`, never committed. The shared-remote auth flow is **[UNVERIFIED]** against the installed DVC version. A fresh-clone `dvc pull` proof was skipped on request.
+The remote is a local folder (`C:\Users\<user>\dvc-remote-mlops`), outside the repo, and was not changed. **Teammates cannot reach it, so do not tell them to `dvc pull` until it is swapped for the shared remote (DagsHub or Google Drive) and that change is committed.** Credentials with `--local`, never committed. The shared-remote auth flow is **[UNVERIFIED]** against the installed DVC version. A fresh-clone `dvc pull` proof was skipped on request.
 
 ---
 

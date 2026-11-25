@@ -9,20 +9,23 @@ import csv
 import os
 import subprocess
 import sys
+import time
 import uuid
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import UTC, date, datetime
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from loguru import logger
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from solarwind.config import get_settings, load_sites
+from solarwind.serving import drift_service, monitoring, ops
 from solarwind.serving.predictor import (
     OutOfRangeError,
     UnknownSiteError,
@@ -31,15 +34,18 @@ from solarwind.serving.predictor import (
 )
 from solarwind.serving.schemas import (
     DeviceSpec,
+    DriftResponse,
     ForecastRequest,
     ForecastResponse,
     HealthResponse,
+    OpsStatusResponse,
     ReplayItem,
     SiteInfo,
     VersionResponse,
 )
 
-API_VERSION = "1.0.0"
+API_VERSION = "0.2.0"
+GITHUB_REPO = os.getenv("GITHUB_REPOSITORY", "aryahabbuxo/mlops")
 _DEVICE_SPECS_PATH = Path(os.getenv("DEVICE_SPECS", "specs/device_specs.csv"))
 
 
@@ -93,10 +99,16 @@ async def lifespan(app: FastAPI):
     ]
     app.state.site_kinds = {s.site_name: s.source_type for s in sites}
     app.state.device_specs = _load_device_specs(_DEVICE_SPECS_PATH)
+    app.state.stats = monitoring.ServiceStats()
+    app.state.started_at = datetime.now(UTC)
+    app.state.last_drift = None
+    app.state.drift_cache = {}
     app.state.predictor = get_predictor()
     app.state.git_commit = _git_commit()
+    info = app.state.predictor.info()
+    monitoring.set_model_info(info["models"], info.get("versions", {}))
     app.state.ready = True
-    logger.info("predictor loaded", models=len(app.state.predictor.info()["models"]))
+    logger.info("predictor loaded", models=len(info["models"]))
     yield
 
 
@@ -123,6 +135,23 @@ async def add_request_id(request: Request, call_next: Callable[[Request], Awaita
     return response
 
 
+@app.middleware("http")
+async def record_metrics(request: Request, call_next: Callable[[Request], Awaitable]):
+    started = time.perf_counter()
+    status = 500
+    try:
+        response = await call_next(request)
+        status = response.status_code
+        return response
+    finally:
+        # Only API routes are counted: the route template keeps label values bounded, and
+        # static files (which have no API route) stay out of the traffic numbers.
+        route = request.scope.get("route")
+        stats = getattr(request.app.state, "stats", None)
+        if route is not None and stats is not None:
+            monitoring.record_request(stats, route.path, status, time.perf_counter() - started)
+
+
 def _request_id(request: Request) -> str:
     return getattr(request.state, "request_id", str(uuid.uuid4()))
 
@@ -141,6 +170,19 @@ async def _out_of_range(request: Request, exc: OutOfRangeError) -> JSONResponse:
         status_code=409,
         content={
             "detail": "as_of outside the weather snapshot range",
+            "request_id": _request_id(request),
+        },
+    )
+
+
+@app.exception_handler(drift_service.DriftUnavailableError)
+async def _drift_unavailable(
+    request: Request, exc: drift_service.DriftUnavailableError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": "drift checks need the model bundle (PREDICTOR=bundle)",
             "request_id": _request_id(request),
         },
     )
@@ -168,6 +210,11 @@ async def health() -> HealthResponse:
     return HealthResponse(status="ok")
 
 
+@app.get("/metrics", include_in_schema=False)
+async def metrics() -> Response:
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
 @app.get("/ready")
 async def ready(request: Request) -> JSONResponse:
     if not getattr(request.app.state, "ready", False):
@@ -176,16 +223,19 @@ async def ready(request: Request) -> JSONResponse:
     return JSONResponse(status_code=200, content={"ready": True, "models_loaded": loaded})
 
 
+def _api_version() -> str:
+    try:
+        return version("solarwind")
+    except PackageNotFoundError:
+        return API_VERSION
+
+
 @app.get("/version", response_model=VersionResponse)
 async def version_info(request: Request) -> VersionResponse:
-    try:
-        api_version = version("solarwind")
-    except PackageNotFoundError:
-        api_version = API_VERSION
     state = request.app.state
     models = state.predictor.info().get("models", {}) if getattr(state, "ready", False) else {}
     return VersionResponse(
-        api_version=api_version,
+        api_version=_api_version(),
         git_commit=getattr(state, "git_commit", None) or _git_commit(),
         models=models,
     )
@@ -203,6 +253,7 @@ async def list_devices(request: Request) -> list[DeviceSpec]:
 
 @app.post("/v1/forecast", response_model=ForecastResponse, dependencies=[Depends(require_ready)])
 async def forecast(body: ForecastRequest, request: Request) -> ForecastResponse:
+    started = time.perf_counter()
     state = request.app.state
     kind = state.site_kinds.get(body.site)
     if kind is None:
@@ -218,7 +269,13 @@ async def forecast(body: ForecastRequest, request: Request) -> ForecastResponse:
         logger.exception("forecast failed; using persistence fallback", site=body.site)
         result = persistence_fallback(kind, body.site, body.as_of)
     result["request_id"] = _request_id(request)
-    return ForecastResponse(**result)
+    response = ForecastResponse(**result)
+    monitoring.observe_forecast(state.stats, body.site, result)
+    latency_ms = (time.perf_counter() - started) * 1000
+    monitoring.log_prediction(
+        monitoring.forecast_record(result, latency_ms), monitoring.prediction_log_path()
+    )
+    return response
 
 
 @app.get("/v1/replay", response_model=list[ReplayItem], dependencies=[Depends(require_ready)])
@@ -227,6 +284,42 @@ async def replay(request: Request, site: str, start: date, end: date) -> list[Re
     if site not in state.site_kinds:
         raise UnknownSiteError(site)
     return [ReplayItem(**item) for item in state.predictor.replay(site, start, end)]
+
+
+# A plain def: the check is CPU-bound pandas work, so FastAPI runs it in the threadpool.
+@app.get(
+    "/v1/monitoring/drift", response_model=DriftResponse, dependencies=[Depends(require_ready)]
+)
+def monitoring_drift(request: Request, scenario: drift_service.Scenario = "none") -> DriftResponse:
+    state = request.app.state
+    result = drift_service.run_check(state.predictor, scenario, state.drift_cache)
+    monitoring.record_drift(result)
+    state.last_drift = result
+    return DriftResponse(**result)
+
+
+@app.get("/v1/ops/status", response_model=OpsStatusResponse, dependencies=[Depends(require_ready)])
+async def ops_status(request: Request) -> OpsStatusResponse:
+    state = request.app.state
+    info = state.predictor.info()
+    stats = state.stats
+    service = ops.service_summary(
+        git_commit=state.git_commit,
+        api_version=_api_version(),
+        started_at=state.started_at,
+        now=datetime.now(UTC),
+        requests_total=stats.requests_total,
+        p95_latency_ms=monitoring.p95_ms(stats.latencies_ms),
+        fallbacks_total=stats.fallbacks_total,
+    )
+    sections = ops.file_sections(ops.result_paths(ops.results_dir()), state.last_drift)
+    return OpsStatusResponse(
+        service=service,
+        models=ops.model_entries(info["models"], info.get("versions", {})),
+        data=ops.data_summary(info),
+        links=ops.links(GITHUB_REPO),
+        **sections,
+    )
 
 
 # The browser UI is served as static files from WEB_DIR when present, mounted last so the API

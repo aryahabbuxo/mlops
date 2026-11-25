@@ -27,7 +27,7 @@ import json
 import shutil
 import sys
 from dataclasses import asdict, dataclass
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -388,16 +388,18 @@ def _g7_claims(measure: dict, claims: dict) -> list[Check]:
 
 
 def _g7_split(p: BundlePredictor) -> Check:
+    """Each model's training window is valid, and the cut-offs it uses (cloudy streak for
+    sunlight, low-wind flag for the calm-day alert) recompute from ITS OWN training days."""
     m = p._manifest
     problems = []
-    declared = (m["split"]["train_end"], m["split"]["val_end"])
-    if declared != (pipe.TRAIN_END, pipe.VAL_END):
-        problems.append(
-            f"split {declared} is not the project split {pipe.TRAIN_END}/{pipe.VAL_END}"
-        )
-    if not pd.Timestamp(declared[0]) < pd.Timestamp(declared[1]) < p._snap_max:
-        problems.append("split dates are not train < validation < end of data")
-    cloudy, low = pipe.train_thresholds(pipe.add_derived(p._bundle.weather))
+    ends = {t: [pd.Timestamp(d) for d in bundle.task_split(m, t)] for t in bundle.TASKS}
+    for task, (train_end, val_end) in ends.items():
+        if not train_end < val_end < p._snap_max:
+            problems.append(f"{task} split is not train < validation < end of data")
+    w = pipe.add_derived(p._bundle.weather)
+    days = pd.to_datetime(w["date"])
+    cloudy = w[days <= ends["sunlight"][0]].groupby("site").sun.quantile(0.25)
+    low = w[days <= ends["lowwind"][0]].groupby("site").v_hub.quantile(0.20)
     for site, info in p._sites.items():
         want = cloudy[site] if info["kind"] == "solar" else low[site]
         key = "cloudy_cut" if info["kind"] == "solar" else "low_cut"
@@ -405,7 +407,7 @@ def _g7_split(p: BundlePredictor) -> Check:
             problems.append(f"{site} {key} {info[key]} vs {want:.3f} from training days")
     return Check(
         "G7", "split and thresholds from training days", "bundle", not problems,
-        "split is the project split; cloudy/low-wind cuts recomputed from training days match"
+        "each model's window is valid; its cut-offs recompute from its own training days"
         if not problems else "; ".join(problems),
     )  # fmt: skip
 
@@ -501,6 +503,10 @@ def _fit_sunlight(p: BundlePredictor, columns: list[str], *, shuffle: bool):
 
 
 # ---------- CLI ----------
+def _now() -> str:
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="cmd", required=True)
@@ -513,14 +519,16 @@ def main(argv: list[str] | None = None) -> int:
     b.add_argument("--out", default="serve_bad")
     b.add_argument("--mode", choices=BAD_MODES, default="shuffled")
     args = parser.parse_args(argv)
+    pipe.use_params()  # G7 checks the bundle against the versioned split in params.yaml
     try:
         if args.cmd == "check":
             report = check(args.serve, args.champion)
             print(report.render())
             if args.out:
                 Path(args.out).parent.mkdir(parents=True, exist_ok=True)
-                Path(args.out).write_text(
-                    json.dumps(report.to_dict(), indent=2) + "\n", encoding="utf-8"
+                stamped = {"generated_at": _now(), **report.to_dict()}
+                Path(args.out).write_text(  # LF on every OS, so dvc.lock matches what git stores
+                    json.dumps(stamped, indent=2) + "\n", encoding="utf-8", newline="\n"
                 )
             return 0 if report.passed else 1
         path = make_bad(args.serve, args.out, args.mode)

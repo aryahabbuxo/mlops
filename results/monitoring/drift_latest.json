@@ -1,0 +1,66 @@
+{
+  "generated_at": "2026-11-25T19:30:13Z",
+  "scenario": "none",
+  "reference": {
+    "start": "2020-07-01",
+    "end": "2023-09-30"
+  },
+  "current": {
+    "start": "2026-07-01",
+    "end": "2026-09-30"
+  },
+  "thresholds": {
+    "warn": 0.1,
+    "alert": 0.25
+  },
+  "status": "ALERT",
+  "features": [
+    {
+      "kind": "solar",
+      "feature": "sun",
+      "psi": 0.0723,
+      "status": "OK"
+    },
+    {
+      "kind": "solar",
+      "feature": "T2M",
+      "psi": 0.8924,
+      "status": "ALERT"
+    },
+    {
+      "kind": "solar",
+      "feature": "WS10M",
+      "psi": 0.3528,
+      "status": "ALERT"
+    },
+    {
+      "kind": "wind",
+      "feature": "WS10M",
+      "psi": 0.2381,
+      "status": "WARN"
+    },
+    {
+      "kind": "wind",
+      "feature": "WS50M",
+      "psi": 0.2578,
+      "status": "ALERT"
+    },
+    {
+      "kind": "wind",
+      "feature": "T2M",
+      "psi": 0.78,
+      "status": "ALERT"
+    }
+  ],
+  "prediction_drift": {
+    "sunlight": {
+      "psi": 0.0579,
+      "status": "OK"
+    },
+    "hubwind": {
+      "psi": 0.2282,
+      "status": "WARN"
+    }
+  },
+  "report_url": "/reports/drift_none.html"
+}

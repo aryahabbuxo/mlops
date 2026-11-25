@@ -361,9 +361,13 @@ stages:
       size: 1875
     - path: src/solarwind/devices
       hash: md5
-      md5: 7410f6349d96e9e2a8d8175307057e3d.dir
-      size: 303715
+      md5: d3cae57640d27b7ef727341df2b0912b.dir
+      size: 330574
       nfiles: 20
+    params:
+      params.yaml:
+        split.train_end: '2024-12-31'
+        split.val_end: '2025-12-31'
     outs:
     - path: RESULTS.md
       hash: md5
@@ -379,8 +383,8 @@ stages:
       size: 695
     - path: results/device_models/metrics.json
       hash: md5
-      md5: 0a2573eb4b70d9a6d874f5a91d6b4d3a
-      size: 269
+      md5: cb4327035b1df2a03ac89ea0ad3aba73
+      size: 262
     - path: results/device_models/regression_results.csv
       hash: md5
       md5: 05272d180cb132e6bae816883c3864d3
@@ -391,8 +395,8 @@ stages:
       size: 103
     - path: serve
       hash: md5
-      md5: 0ccb1a30c80fcb03ca3dbdcf9081cf92.dir
-      size: 3119699
+      md5: be7acb9a1f9d500b5ca994d2e1446b9a.dir
+      size: 936544
       nfiles: 5
   train_lstm:
     cmd: python -m solarwind.devices.lstm
@@ -439,19 +443,52 @@ stages:
     deps:
     - path: serve
       hash: md5
-      md5: 0ccb1a30c80fcb03ca3dbdcf9081cf92.dir
-      size: 3119699
+      md5: be7acb9a1f9d500b5ca994d2e1446b9a.dir
+      size: 936544
       nfiles: 5
     - path: src/solarwind/devices/gates.py
       hash: md5
-      md5: c3c3c65ad794c79d6d1cd971e7c13d87
-      size: 21809
+      md5: 2ed14ad5ef2565af706dbb9df51f39fc
+      size: 22340
     - path: src/solarwind/devices/inference.py
       hash: md5
-      md5: 7ac4785f6306ec863fc8f194d6789879
-      size: 18953
+      md5: bd36e421404c882b5b5a43d84e79f949
+      size: 19761
     outs:
     - path: results/gates/report.json
       hash: md5
-      md5: d26a471eacf80aee59de6cb3859700be
-      size: 4546
+      md5: 0521afd0fcf1b3b6372acaa924ca3d52
+      size: 4408
+  monitor:
+    cmd: python -m solarwind.monitoring.drift check --scenario none && python -m
+      solarwind.monitoring.performance && python -m solarwind.monitoring.report 
+      --all
+    deps:
+    - path: serve
+      hash: md5
+      md5: be7acb9a1f9d500b5ca994d2e1446b9a.dir
+      size: 936544
+      nfiles: 5
+    - path: src/solarwind/monitoring
+      hash: md5
+      md5: 2c30e1b9ac9f857803c8e7ec3024245d.dir
+      size: 75408
+      nfiles: 10
+    outs:
+    - path: results/monitoring/drift_latest.json
+      hash: md5
+      md5: 02b47df5fa8234c73c288ce2c11f5e57
+      size: 1210
+    - path: results/monitoring/performance.csv
+      hash: md5
+      md5: 90170d64889753b46f34c956e9efc6e1
+      size: 3154
+    - path: results/monitoring/performance_lowwind.csv
+      hash: md5
+      md5: 06a7ca6530573aeba2e08bef24b19a45
+      size: 428
+    - path: web/reports
+      hash: md5
+      md5: 2a9e0df4c042bfb79c4d4bb57fb4455c.dir
+      size: 15678589
+      nfiles: 4
