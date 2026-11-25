@@ -53,6 +53,9 @@ jobs:
       - name: Promotion gates
         run: python -m solarwind.devices.gates check --serve serve
       - name: Serving contract against the real bundle
+        env:
+          PREDICTOR: bundle
+          SERVE_DIR: serve
         run: python -m pytest -q tests/serving
 
   docker-smoke:
@@ -105,6 +108,9 @@ jobs:
           curl -fsS -X POST http://localhost:8000/v1/forecast \
             -H 'Content-Type: application/json' \
             -d '{"site":"pavagada","as_of":"2025-06-01"}' | grep -q 'sunlight_kwh_m2'
+          curl -fsS http://localhost:8000/metrics \
+            | grep -q 'greenops_requests_total{endpoint="/v1/forecast",status="200"}'
+          curl -fsS http://localhost:8000/v1/ops/status | grep -q '"gates":{"passed":'
       - name: Container logs
         if: always()
         run: docker logs api || true

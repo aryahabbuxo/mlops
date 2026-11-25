@@ -115,3 +115,74 @@ class ReplayItem(BaseModel):
     forecast: float
     actual: float
     error: float
+
+
+class EmptySection(BaseModel):
+    """A status section whose source file is missing or unreadable: serialised as {}."""
+
+    model_config = ConfigDict(extra="forbid")
+
+
+class ServiceStatus(BaseModel):
+    git_commit: str
+    api_version: str
+    started_at: str
+    uptime_s: int
+    requests_total: int
+    p95_latency_ms: float | None
+    fallbacks_total: int
+
+
+class ServedModel(BaseModel):
+    version: str
+    id: str
+    alias: str
+
+
+class DataStatus(BaseModel):
+    source: str
+    sites: int
+    rows: int | None
+    snapshot_end: str | None
+
+
+class GatesStatus(BaseModel):
+    passed: int
+    total: int
+    report_date: str | None
+
+
+class RegistryEntry(BaseModel):
+    task: str
+    version: str | None
+    aliases: list[str]
+    gates: str | None
+    reason: str | None
+    approved_by: str | None
+    date: str | None
+
+
+class DriftStatus(BaseModel):
+    status: str
+    scenario: str | None
+    generated_at: str | None
+
+
+class PerformanceRow(BaseModel):
+    model_config = ConfigDict(protected_namespaces=())
+
+    month: str
+    task: str
+    model_mae: float | None
+    persistence_mae: float | None
+
+
+class OpsStatusResponse(BaseModel):
+    service: ServiceStatus
+    models: dict[str, ServedModel]
+    data: DataStatus
+    gates: GatesStatus | EmptySection
+    registry: list[RegistryEntry]
+    drift: DriftStatus | EmptySection
+    performance: list[PerformanceRow]
+    links: dict[str, str]

@@ -98,7 +98,7 @@ def test_every_site_forecasts_on_a_sample_of_days(predictor):
             assert r["weather_used"]["fallback"] is False
 
 
-def test_response_is_valid_for_kartiks_schema(predictor):
+def test_response_is_valid_for_the_serving_schema(predictor):
     from solarwind.serving.schemas import ForecastResponse
 
     for site in (SOLAR, WIND):
@@ -312,12 +312,20 @@ def test_info_matches_what_the_app_reads(predictor):
     assert info["snapshot"] == {"start": "2019-10-30", "end": "2026-09-30"}
 
 
+def test_info_reports_registry_versions_only_for_a_materialized_bundle(bundle_dir):
+    fresh = BundlePredictor(bundle_dir)
+    assert fresh.info()["versions"] == {}
+
+    fresh._manifest["champions"] = {"sunlight": 2, "hubwind": 1, "lowwind": 1}
+    assert fresh.info()["versions"] == {"sunlight": "2", "hubwind": "1", "lowwind": "1"}
+
+
 def test_missing_bundle_fails_loudly(tmp_path):
     with pytest.raises(bundle.BundleError):
         BundlePredictor(tmp_path / "nope")
 
 
-# ---------- through Kartik's real app ----------
+# ---------- through the real serving app ----------
 @pytest.fixture
 def client(bundle_dir, monkeypatch):
     from solarwind.serving import app as app_module

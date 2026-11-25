@@ -1,6 +1,6 @@
 """Serve-time inference: one as-of date in, tomorrow's forecast and device outputs out.
 
-`BundlePredictor` is the real backend behind Kartik's `Predictor` protocol
+`BundlePredictor` is the real backend behind the serving `Predictor` protocol
 (`solarwind.serving.predictor`). It loads the verified bundle (`serve/`), builds features with the
 SAME `sun_frame` / `wind_frame` code the models were trained on, and never fetches anything:
 the weather comes from the baked snapshot ("replay": pick an as-of date, forecast the next day).
@@ -99,6 +99,11 @@ class BundlePredictor:
 
     def _versions(self) -> dict[str, str]:
         return {n: f"{t['algo']}-{t['sha256'][:8]}" for n, t in self._tasks.items()}
+
+    def _registry_versions(self) -> dict[str, str]:
+        """Registry version per task, written by `registry materialize`; empty for a fresh train."""
+        champions = self._manifest.get("champions") or {}
+        return {task: str(v) for task, v in champions.items()}
 
     def _algo(self, kind: str) -> str:
         t = self._tasks
@@ -412,7 +417,9 @@ class BundlePredictor:
             "algo": "bundle",
             "sites": sorted(s.lower() for s in self._sites),
             "models": self._versions(),
+            "versions": self._registry_versions(),
             "snapshot": {"start": m["snapshot"]["date_min"], "end": m["snapshot"]["date_max"]},
+            "snapshot_rows": m["snapshot"].get("rows"),
             "git_commit": m["git_commit"],
             "built_at": m["built_at"],
             "metrics": {n: t["metrics"] for n, t in self._tasks.items()},

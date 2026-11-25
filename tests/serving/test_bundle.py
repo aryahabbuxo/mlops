@@ -1,7 +1,7 @@
 """Integration checks for the real BundlePredictor.
 
 Skipped until the DVC-tracked bundle is pulled (``dvc pull serve``). The point is to catch
-schema drift between Minnie's inference output and the frozen serving contract: every forecast
+schema drift between the bundle's inference output and the frozen serving contract: every forecast
 dict must validate against ForecastResponse exactly as the app would build it.
 """
 

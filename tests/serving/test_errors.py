@@ -13,7 +13,7 @@ def test_unknown_site_is_404(client):
 
 
 def test_as_of_out_of_range_is_409(client):
-    response = client.post("/v1/forecast", json={"site": "pavagada", "as_of": "2024-01-01"})
+    response = client.post("/v1/forecast", json={"site": "pavagada", "as_of": "2018-01-01"})
     assert response.status_code == 409
 
 
