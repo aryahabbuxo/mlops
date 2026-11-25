@@ -100,6 +100,11 @@ class BundlePredictor:
     def _versions(self) -> dict[str, str]:
         return {n: f"{t['algo']}-{t['sha256'][:8]}" for n, t in self._tasks.items()}
 
+    def _registry_versions(self) -> dict[str, str]:
+        """Registry version per task, written by `registry materialize`; empty for a fresh train."""
+        champions = self._manifest.get("champions") or {}
+        return {task: str(v) for task, v in champions.items()}
+
     def _algo(self, kind: str) -> str:
         t = self._tasks
         if kind == "solar":
@@ -412,7 +417,9 @@ class BundlePredictor:
             "algo": "bundle",
             "sites": sorted(s.lower() for s in self._sites),
             "models": self._versions(),
+            "versions": self._registry_versions(),
             "snapshot": {"start": m["snapshot"]["date_min"], "end": m["snapshot"]["date_max"]},
+            "snapshot_rows": m["snapshot"].get("rows"),
             "git_commit": m["git_commit"],
             "built_at": m["built_at"],
             "metrics": {n: t["metrics"] for n, t in self._tasks.items()},

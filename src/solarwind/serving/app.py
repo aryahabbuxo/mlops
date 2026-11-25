@@ -13,7 +13,7 @@ import time
 import uuid
 from collections.abc import Awaitable, Callable
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import UTC, date, datetime
 from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
@@ -25,7 +25,7 @@ from loguru import logger
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from solarwind.config import get_settings, load_sites
-from solarwind.serving import monitoring
+from solarwind.serving import monitoring, ops
 from solarwind.serving.predictor import (
     OutOfRangeError,
     UnknownSiteError,
@@ -37,12 +37,14 @@ from solarwind.serving.schemas import (
     ForecastRequest,
     ForecastResponse,
     HealthResponse,
+    OpsStatusResponse,
     ReplayItem,
     SiteInfo,
     VersionResponse,
 )
 
-API_VERSION = "1.0.0"
+API_VERSION = "0.2.0"
+GITHUB_REPO = os.getenv("GITHUB_REPOSITORY", "aryahabbuxo/mlops")
 _DEVICE_SPECS_PATH = Path(os.getenv("DEVICE_SPECS", "specs/device_specs.csv"))
 
 
@@ -97,6 +99,8 @@ async def lifespan(app: FastAPI):
     app.state.site_kinds = {s.site_name: s.source_type for s in sites}
     app.state.device_specs = _load_device_specs(_DEVICE_SPECS_PATH)
     app.state.stats = monitoring.ServiceStats()
+    app.state.started_at = datetime.now(UTC)
+    app.state.last_drift = None
     app.state.predictor = get_predictor()
     app.state.git_commit = _git_commit()
     info = app.state.predictor.info()
@@ -204,16 +208,19 @@ async def ready(request: Request) -> JSONResponse:
     return JSONResponse(status_code=200, content={"ready": True, "models_loaded": loaded})
 
 
+def _api_version() -> str:
+    try:
+        return version("solarwind")
+    except PackageNotFoundError:
+        return API_VERSION
+
+
 @app.get("/version", response_model=VersionResponse)
 async def version_info(request: Request) -> VersionResponse:
-    try:
-        api_version = version("solarwind")
-    except PackageNotFoundError:
-        api_version = API_VERSION
     state = request.app.state
     models = state.predictor.info().get("models", {}) if getattr(state, "ready", False) else {}
     return VersionResponse(
-        api_version=api_version,
+        api_version=_api_version(),
         git_commit=getattr(state, "git_commit", None) or _git_commit(),
         models=models,
     )
@@ -262,6 +269,30 @@ async def replay(request: Request, site: str, start: date, end: date) -> list[Re
     if site not in state.site_kinds:
         raise UnknownSiteError(site)
     return [ReplayItem(**item) for item in state.predictor.replay(site, start, end)]
+
+
+@app.get("/v1/ops/status", response_model=OpsStatusResponse, dependencies=[Depends(require_ready)])
+async def ops_status(request: Request) -> OpsStatusResponse:
+    state = request.app.state
+    info = state.predictor.info()
+    stats = state.stats
+    service = ops.service_summary(
+        git_commit=state.git_commit,
+        api_version=_api_version(),
+        started_at=state.started_at,
+        now=datetime.now(UTC),
+        requests_total=stats.requests_total,
+        p95_latency_ms=monitoring.p95_ms(stats.latencies_ms),
+        fallbacks_total=stats.fallbacks_total,
+    )
+    sections = ops.file_sections(ops.result_paths(ops.results_dir()), state.last_drift)
+    return OpsStatusResponse(
+        service=service,
+        models=ops.model_entries(info["models"], info.get("versions", {})),
+        data=ops.data_summary(info),
+        links=ops.links(GITHUB_REPO),
+        **sections,
+    )
 
 
 # The browser UI is served as static files from WEB_DIR when present, mounted last so the API

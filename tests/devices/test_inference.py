@@ -312,6 +312,14 @@ def test_info_matches_what_the_app_reads(predictor):
     assert info["snapshot"] == {"start": "2019-10-30", "end": "2026-09-30"}
 
 
+def test_info_reports_registry_versions_only_for_a_materialized_bundle(bundle_dir):
+    fresh = BundlePredictor(bundle_dir)
+    assert fresh.info()["versions"] == {}
+
+    fresh._manifest["champions"] = {"sunlight": 2, "hubwind": 1, "lowwind": 1}
+    assert fresh.info()["versions"] == {"sunlight": "2", "hubwind": "1", "lowwind": "1"}
+
+
 def test_missing_bundle_fails_loudly(tmp_path):
     with pytest.raises(bundle.BundleError):
         BundlePredictor(tmp_path / "nope")
