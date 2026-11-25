@@ -111,6 +111,8 @@ jobs:
           curl -fsS http://localhost:8000/metrics \
             | grep -q 'greenops_requests_total{endpoint="/v1/forecast",status="200"}'
           curl -fsS http://localhost:8000/v1/ops/status | grep -q '"gates":{"passed":'
+          curl -fsS 'http://localhost:8000/v1/monitoring/drift?scenario=cloudy_monsoon' \
+            | grep -q '"scenario":"cloudy_monsoon"'
       - name: Container logs
         if: always()
         run: docker logs api || true

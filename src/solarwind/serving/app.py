@@ -25,7 +25,7 @@ from loguru import logger
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
 from solarwind.config import get_settings, load_sites
-from solarwind.serving import monitoring, ops
+from solarwind.serving import drift_service, monitoring, ops
 from solarwind.serving.predictor import (
     OutOfRangeError,
     UnknownSiteError,
@@ -34,6 +34,7 @@ from solarwind.serving.predictor import (
 )
 from solarwind.serving.schemas import (
     DeviceSpec,
+    DriftResponse,
     ForecastRequest,
     ForecastResponse,
     HealthResponse,
@@ -101,6 +102,7 @@ async def lifespan(app: FastAPI):
     app.state.stats = monitoring.ServiceStats()
     app.state.started_at = datetime.now(UTC)
     app.state.last_drift = None
+    app.state.drift_cache = {}
     app.state.predictor = get_predictor()
     app.state.git_commit = _git_commit()
     info = app.state.predictor.info()
@@ -168,6 +170,19 @@ async def _out_of_range(request: Request, exc: OutOfRangeError) -> JSONResponse:
         status_code=409,
         content={
             "detail": "as_of outside the weather snapshot range",
+            "request_id": _request_id(request),
+        },
+    )
+
+
+@app.exception_handler(drift_service.DriftUnavailableError)
+async def _drift_unavailable(
+    request: Request, exc: drift_service.DriftUnavailableError
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": "drift checks need the model bundle (PREDICTOR=bundle)",
             "request_id": _request_id(request),
         },
     )
@@ -269,6 +284,18 @@ async def replay(request: Request, site: str, start: date, end: date) -> list[Re
     if site not in state.site_kinds:
         raise UnknownSiteError(site)
     return [ReplayItem(**item) for item in state.predictor.replay(site, start, end)]
+
+
+# A plain def: the check is CPU-bound pandas work, so FastAPI runs it in the threadpool.
+@app.get(
+    "/v1/monitoring/drift", response_model=DriftResponse, dependencies=[Depends(require_ready)]
+)
+def monitoring_drift(request: Request, scenario: drift_service.Scenario = "none") -> DriftResponse:
+    state = request.app.state
+    result = drift_service.run_check(state.predictor, scenario, state.drift_cache)
+    monitoring.record_drift(result)
+    state.last_drift = result
+    return DriftResponse(**result)
 
 
 @app.get("/v1/ops/status", response_model=OpsStatusResponse, dependencies=[Depends(require_ready)])
