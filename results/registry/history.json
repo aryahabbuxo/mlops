@@ -53,8 +53,8 @@
     "promoted_by": "model owner, platform owner",
     "rolled_back_at": "2026-11-25T19:10:29Z",
     "rolled_back_reason": "rollback drill: proving a bad release can be undone in one command",
-    "reason": "rollback drill: proving a bad release can be undone in one command",
-    "approved_by": null,
+    "reason": "re-promoted after rollback drill; 3.56% lower error than v1 on the same Jan-Sep 2026 days",
+    "approved_by": "model owner, platform owner",
     "date": "2026-11-25"
   },
   {

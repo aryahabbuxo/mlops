@@ -353,3 +353,25 @@ def test_export_summary_shows_promotion_and_refusal(reg, make_bundle, make_newer
     assert v2["reason"] == "better on the same days" and v2["approved_by"] == "model owner"
     assert len(v2["date"]) == 10
     assert rows[("sunlight", 1)]["approved_by"] is None  # registered, never promoted
+
+
+def test_a_version_promoted_again_after_a_rollback_shows_the_promotion():
+    v = {
+        "gates": "passed",
+        "aliases": ["champion"],
+        "registered_at": "2026-11-25T18:55:29Z",
+        "registered_reason": "drift alert",
+        "promoted_at": "2026-11-25T19:11:43Z",
+        "promoted_reason": "re-promoted after the drill",
+        "promoted_by": "model owner",
+        "rolled_back_at": "2026-11-25T19:10:29Z",
+        "rolled_back_reason": "rollback drill",
+    }
+    row = registry._history_row("sunlight", v)
+    assert (row["reason"], row["approved_by"]) == ("re-promoted after the drill", "model owner")
+
+    rolled_back_last = {**v, "rolled_back_at": "2026-11-25T19:12:00Z"}
+    row = registry._history_row("sunlight", rolled_back_last)
+    assert (row["reason"], row["approved_by"]) == ("rollback drill", None)
+
+    assert registry._history_row("sunlight", {"gates": "passed"})["date"] is None

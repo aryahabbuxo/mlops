@@ -424,13 +424,17 @@ def _keep_own_window(entry: dict, task: str, base: dict) -> None:
 
 def _history_row(task: str, v: dict) -> dict:
     """One version, plus the short fields /v1/ops/status shows: reason, approver and date of the
-    last thing that happened to it (rollback, promotion or registration)."""
-    if v.get("rolled_back_at"):
-        reason, by, when = v.get("rolled_back_reason"), None, v["rolled_back_at"]
-    elif v.get("promoted_at"):
-        reason, by, when = v.get("promoted_reason"), v.get("promoted_by"), v["promoted_at"]
-    else:
-        reason, by, when = v.get("registered_reason"), None, v.get("registered_at")
+    last thing that happened to it (rollback, promotion or registration).
+
+    A version can be rolled back and promoted again, so the latest timestamp decides; on a tie
+    (same second) the later step in that order wins."""
+    events = [
+        (v.get("rolled_back_at"), v.get("rolled_back_reason"), None),
+        (v.get("promoted_at"), v.get("promoted_reason"), v.get("promoted_by")),
+        (v.get("registered_at"), v.get("registered_reason"), None),
+    ]
+    stamped = [e for e in events if e[0]]
+    when, reason, by = max(stamped, key=lambda e: e[0]) if stamped else (None, None, None)
     if v.get("gates") == "failed" and "champion" not in v.get("aliases", []):
         reason = f"refused: gates failed ({v.get('gates_failed') or 'see gates'})"
     summary = {"reason": reason, "approved_by": by, "date": (when or "")[:10] or None}
