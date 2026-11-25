@@ -35,9 +35,9 @@ Shareable views: `/#site=gadag&date=2026-03-04`.
 
 | Forecast | Sites | Model | Becomes |
 |---|---|---|---|
-| Tomorrow's sunlight (kWh/m²/day) | Pavagada, Raichur, Kalaburagi, Mysuru | Gradient boosting | Lamp hours lit, water temperature and backup need |
-| Tomorrow's hub-height wind (m/s) | Chitradurga, Gadag, Koppal, Hassan | Ridge regression | Turbine energy (kWh/day) |
-| A calm day tomorrow (chance and alert) | the four wind sites | Logistic regression | "Calm day likely" warning |
+| Tomorrow's sunlight (kWh/m²/day) | Pavagada, Raichur, Kalaburagi, Mysuru | Ridge regression (v2; v1 was gradient boosting) | Lamp hours lit, water temperature and backup need |
+| Tomorrow's hub-height wind (m/s) | Chitradurga, Gadag, Koppal, Hassan | Ridge regression (v2) | Turbine energy (kWh/day) |
+| A calm day tomorrow (chance and alert) | the four wind sites | Logistic regression (v1) | "Calm day likely" warning |
 
 Weather is real: NASA POWER daily data, 30 Oct 2019 to 30 Sep 2026 (2,528 days per site). Devices
 are simulated from published spec sheets (Sun King Home 60 lamp, Giacomini GSUN 200 water heater,
@@ -55,6 +55,17 @@ Bergey Excel 10 turbine); every spec value is tagged published, worked out or ou
 The margins are small and the model card says so. An LSTM (TensorFlow) beat the best sklearn model by
 about 3% on validation under a rule fixed in advance, and runs as a shadow beside the champion
 (`compare=true`), not as the champion. Reasons are in [docs/decisions.md](docs/decisions.md).
+
+The table above is the v1 training run. In Phase 3 the drift alert led to a retrain on one more year
+(train to 2024, validation 2025), and each task was released on its own (D19). Champion and
+challenger were scored on the same unseen days, 1 Jan to 30 Sep 2026
+(`results/monitoring/champion_vs_challenger.json`):
+
+| Task | v1 | v2 | Change | Released |
+|---|---|---|---|---|
+| Sunlight (MAE) | 0.6004 | 0.5791 | -3.56% | v2 |
+| Hub wind (MAE) | 0.6761 | 0.6735 | -0.39% | v2 |
+| Calm-day alert (PR-AUC) | 0.6196 | 0.5103 | -17.64% | v1 kept (v2 failed gate G2) |
 
 ## How it fits together
 
@@ -77,7 +88,7 @@ NASA POWER ──► dvc repro train_device_models ──► serve/ (models + we
 | Bundle (skops files, SHA-256, manifest) | `src/solarwind/devices/bundle.py`, `serve/` |
 | Inference, what-if, replay | `src/solarwind/devices/inference.py` |
 | API | `src/solarwind/serving/` |
-| Front end | `web/index.html` (one file, no dependencies, works offline) |
+| Front end | `web/index.html` forecast page and `web/ops.html` operations page (one file each, no dependencies) |
 | Container and CI | `Dockerfile`, `.github/workflows/ci.yml` |
 | Drift (PSI, scenarios, Evidently reports) | `src/solarwind/monitoring/`, `.github/workflows/drift.yml` |
 | Metrics, prediction log, ops status | `src/solarwind/serving/monitoring.py`, `ops.py`, `drift_service.py` |
@@ -132,6 +143,7 @@ Base URL is the same origin as the page. Errors are JSON with `detail` and `requ
 | `GET /v1/monitoring/drift?scenario=` | PSI per input feature and per model output for `none`, `cloudy_monsoon`, `sensor_fault` or `heatwave`, with an overall OK / WARN / ALERT (shape in `web/sample/drift.json`) |
 | `GET /v1/ops/status` | one snapshot for the ops page: service counters, served models, data, gates, registry, last drift check, monthly performance (shape in `web/sample/ops_status.json`) |
 | `GET /metrics` | Prometheus metrics (not in the OpenAPI schema) |
+| `GET /ops.html` | operations page built on the two calls above: traffic, gates, drift scenarios, models and registry history, monthly error |
 | `GET /reports/drift_<scenario>.html` | Evidently drift report, when the image was built with `web/reports` pulled |
 
 Status codes: 404 unknown site, 409 date outside 2019-10-30 to 2026-09-30, 422 unknown drift
@@ -170,6 +182,9 @@ Required GitHub secrets: `DAGSHUB_USER`, `DAGSHUB_TOKEN` (to pull the pinned bun
   never an error. A drift check made in the running process replaces the file's drift result.
   Model versions come from `manifest.champions`, which `registry materialize` writes; a bundle
   trained directly reports `unknown`.
+- **Ops page.** `/ops.html` shows the status above and runs a drift scenario on click (each
+  button calls `/v1/monitoring/drift`, which also updates the drift gauges). It refreshes every
+  30 seconds while the tab is visible, and an empty section says so instead of breaking the page.
 
 Counters, the latency window and the prediction log live in the container, so they reset when
 Render restarts the service.
