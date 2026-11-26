@@ -410,6 +410,7 @@ function fmtUptime(s) {
   return d ? `${d}d ${h}h` : h ? `${h}h ${m}m` : `${m}m`;
 }
 function show(id, on) { $(id).hidden = !on; }
+const short = (sha) => String(sha || "").slice(0, 7);
 const label = (scenario) => (SCENARIOS.find(([k]) => k === scenario) || [scenario, scenario || "unknown"])[1];
 
 async function api(path, opts) {
@@ -555,7 +556,7 @@ function renderService() {
   $("#sP95").innerHTML = sv.p95_latency_ms == null ? "-" : `${Math.round(sv.p95_latency_ms)}<em>ms</em>`;
   $("#sFb").textContent = fmtNum(sv.fallbacks_total);
   $("#sUp").textContent = fmtUptime(sv.uptime_s);
-  $("#sBuild").innerHTML = `API ${esc(sv.api_version)}, commit <code>${esc(sv.git_commit)}</code>. Counters reset when the service restarts.`;
+  $("#sBuild").innerHTML = `API ${esc(sv.api_version)}, commit <code title="${esc(sv.git_commit)}">${esc(short(sv.git_commit))}</code>. Counters reset when the service restarts.`;
 }
 
 function spark(id, rows, model, base, higher) {
@@ -608,7 +609,7 @@ function renderFlow() {
   const gatesOk = !isEmpty(g) && g.passed === g.total;
   const stages = [
     ["Data", d.source || "-", d.snapshot_end ? `${d.sites} sites, to ${fmtDay(d.snapshot_end)}` : "no snapshot", d.snapshot_end ? "ok" : ""],
-    ["Versioned", "Git + DVC", `commit ${sv.git_commit}`, "ok"],
+    ["Versioned", "Git + DVC", `commit ${short(sv.git_commit)}`, "ok"],
     ["Quality gates", isEmpty(g) ? "-" : `${g.passed} of ${g.total} passed`, isEmpty(g) ? "no report" : "G1 to G7, every model", isEmpty(g) ? "" : gatesOk ? "ok" : "alert"],
     ["Release review", f.tasks.length ? `${f.promoted.length} promoted, ${f.refused.length} refused` : "-", f.tasks.length ? "same days, before vs candidate" : "no review yet", f.tasks.length ? "ok" : ""],
     ["Registry", f.reg.length ? `${f.champs} champions` : "-", f.reg.length ? `${f.reg.length} versions, ${f.refusedReg.length} refused` : "no history file", f.reg.length ? "ok" : ""],
@@ -769,7 +770,7 @@ function renderBuild() {
     ["Sites", esc(d.sites ?? "-")],
     ["Weather rows in the bundle", esc(fmtNum(d.rows))],
     ["Latest weather day", esc(fmtDay(d.snapshot_end))],
-    ["Git commit", `<code>${esc(sv.git_commit)}</code>`],
+    ["Git commit", `<a href="${esc(l.repo)}/commit/${esc(sv.git_commit)}" rel="noopener"><code>${esc(short(sv.git_commit))}</code></a>`],
     ["Container image", `<code>${esc(l.image)}</code>`],
     ["Code and CI", `<a href="${esc(l.repo)}" rel="noopener">repository</a>, <a href="${esc(l.actions)}" rel="noopener">CI runs</a>`],
     ["Metrics", `<a href="${esc(API)}/metrics">/metrics</a> (Prometheus)`],

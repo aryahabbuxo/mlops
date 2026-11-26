@@ -73,7 +73,7 @@ services:
     restart: unless-stopped
 
   tensorboard:
-    # Pinned to the TF image that carries TensorBoard; align the tag with Arya Habbu's tensorflow-cpu pin.
+    # Pinned to the TF image that carries TensorBoard; align the tag with the tensorflow-cpu pin in pyproject.toml.
     image: tensorflow/tensorflow:2.20.0
     command: tensorboard --logdir /runs/tb --host 0.0.0.0 --port 6006
     ports:

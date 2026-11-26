@@ -1,4 +1,4 @@
-# Changes to the models, the training pipeline and the pinned bundle need Arya Habbu's review.
+# The model owner owns the models, the training pipeline and the pinned bundle; GitHub requests their review.
 /src/solarwind/devices/ @aryahabbuxo
 /dvc.lock               @aryahabbuxo
 /dvc.yaml               @aryahabbuxo
