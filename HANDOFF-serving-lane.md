@@ -9,7 +9,7 @@ change it, and the few optional follow-ups. TL;DR first.
 
 ## TL;DR
 
-- **Live API + UI:** https://greenops-api-latest.onrender.com — serving Arya Habbu's UI at `/` and the
+- **Live API + UI:** https://greenops-api-latest.onrender.com — serving the browser UI at `/` and the
   frozen API, backed by the real DVC bundle. `git_commit 4793abc`.
 - **Everything's merged and tagged:** `main` = `phase2` = `4793abc`, release `v1.0-phase2`.
   `publish-image` now runs on every push to `main` and the "Run workflow" dispatch button works.
@@ -58,7 +58,7 @@ curl -fsS -X POST $BASE/v1/forecast -H 'Content-Type: application/json' \
 - FastAPI service on the frozen contract: `GET /health`, `/ready`, `/version`, `/v1/sites`,
   `/v1/devices`, `POST /v1/forecast`, `GET /v1/replay`.
 - Serves the **real bundle** (`PREDICTOR=bundle`, `SERVE_DIR=serve`); stub stays the test default.
-- **Serves Arya Habbu's browser UI** at `/` via a guarded `StaticFiles` mount (`web/`), mounted last so
+- **Serves the browser UI** at `/` via a guarded `StaticFiles` mount (`web/`), mounted last so
   API routes keep priority; pure JSON API if `web/` is absent.
 - **CORS** (`CORS_ORIGINS`, default `*`); request-id on every response; resilient errors
   (404 unknown site, 409 out-of-range date, 503 not-ready, persistence fallback instead of 500).
@@ -97,7 +97,7 @@ curl -fsS -X POST $BASE/v1/forecast -H 'Content-Type: application/json' \
 
 ---
 
-## For Arya Habbu — good to know / you own
+## For the model owner — good to know / you own
 
 - **GitHub secrets `DAGSHUB_USER` / `DAGSHUB_TOKEN`** and Actions **"Read and write"** permission are
   set (CI's `dvc pull serve` and the GHCR push depend on them).
@@ -125,7 +125,7 @@ curl -fsS -X POST $BASE/v1/forecast -H 'Content-Type: application/json' \
 
 - **Local GHCR push from the platform lane's machine fails** (`EOF` to `ghcr.io` — a network/firewall issue,
   not auth). Irrelevant now: CI publishes the image. Don't burn time retrying it locally.
-- DVC: no `dvc commit`/`add`/`push` from a regenerated bundle; `dvc.lock` is the one from Arya Habbu's
+- DVC: no `dvc commit`/`add`/`push` from a regenerated bundle; `dvc.lock` is the one from the model owner's
   push. The deployed/CI bundle is always her push.
 - Render free tier: single instance, cold starts, sleeps when idle — fine for the demo, not for
   load. Cloud Run is the upgrade path when needed.
