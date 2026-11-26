@@ -11,6 +11,11 @@
   "drift": {"status": "OK", "scenario": "none", "generated_at": "2026-11-22T10:00:00Z"},
   "performance": [{"month": "2024-01", "task": "sunlight", "model_mae": 0.51,
                    "persistence_mae": 0.55}],
+  "comparison": {"start": "2026-01-01", "end": "2026-09-30", "generated_at": "2026-11-25T12:00:00Z",
+                 "tasks": [{"task": "sunlight", "metric": "mae", "champion": 0.6004, "challenger": 0.5791,
+                            "persistence": 0.6397, "change_pct": -3.56, "verdict": "better", "eligible": true,
+                            "champion_id": "hgb-01f5da66", "challenger_id": "ridge-d122d55b"}]},
+  "calm_day": [{"quarter": "2026Q3", "model_pr_auc": 0.7682, "baseline_pr_auc": 0.3661, "calm_days": 21}],
   "links": {"repo": "https://github.com/aryahabbuxo/mlops",
             "actions": "https://github.com/aryahabbuxo/mlops/actions",
             "image": "ghcr.io/aryahabbuxo/greenops-api"}

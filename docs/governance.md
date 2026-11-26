@@ -36,12 +36,21 @@ untested model or a broken image.
 A model version may serve users only if all of these hold:
 
 1. It passes the seven quality gates (G1 to G7, decision D11), measured from the model itself.
-2. On the same recent months, it is not worse than the current champion (same-window comparison).
+2. On the same recent days, which neither version was chosen on, it is **better** than the current
+   champion (`monitoring/compare.py`; a candidate that is only "within tolerance" is not enough).
 3. Its promotion records a reason and an approver as registry tags, with a timestamp.
 4. Promotion is a human command. The retraining loop can register a candidate; it never promotes.
+5. Each task is released on its own: a better model ships without waiting for the others, and a worse
+   one is refused while its champion stays in service (D19).
+6. `--force` is never used. A blocked candidate is fixed and registered again, or refused.
 
 The previous champion is kept with the alias `previous`, so `registry rollback` restores it in one
-command.
+command; the rollback records its reason.
+
+**Applied in practice (release v2, 2026-11-25):** sunlight v2 (-3.56% on Jan to Sep 2026) and hub wind
+v2 (-0.39%) were promoted with a recorded reason and approver; the calm-day v2 candidate failed G2 and
+was 17.64% worse on the same days, so it was refused and v1 stayed in service. A rollback drill on
+sunlight (v2 to v1 to v2) is recorded on the version.
 
 **Why:** accuracy alone is not enough (decision D4). A model must be safe, fair across sites, honest
 about its scores, and better on the data users see now, and someone must take responsibility for it.
@@ -54,6 +63,8 @@ about its scores, and better on the data users see now, and someone must take re
 | Every version records what made it | Tags: data window, git commit, file SHA-256, metrics, gate result, reason, approver |
 | The data window is versioned with the code | `params.yaml` (train and validation dates), tracked by DVC |
 | What is deployed is pinned | `dvc.lock` holds the bundle hash; CI and deploy never retrain (D8) |
+| A bundle may mix versions, each with its own window | Per-task window and cut-offs in the manifest, checked by G7 (D19, risk R19) |
+| The served bundle comes from the registry, not from a training run | `registry materialize` writes `serve/` from the champions |
 | The running service says what it runs | `/version`: API version, git commit, model version per task |
 
 **Why we version:** to reproduce any forecast from its exact model and data, to compare models fairly,
@@ -100,7 +111,8 @@ that gap (risk R8).
 | Question | Answered by |
 |---|---|
 | Which code is live? | `/version` git commit, GitHub Actions run, image tag |
-| Which model is live and why? | Registry tags (reason, approver, gates), `results/registry/history.json` |
+| Which model is live and why? | Registry tags (reason, approver, gates), `results/registry/history.json`, `/ops.html` |
+| Why was a candidate refused? | `results/monitoring/champion_vs_challenger.json`, gate result tag, `docs/decisions.md` D19 |
 | What did the model say for a request? | Prediction log and request id |
 | Who changed the pipeline? | Git history, pull requests |
 | What did the gates and monitors find? | `results/gates/report.json`, `results/monitoring/` |

@@ -108,7 +108,11 @@ NASA POWER ──► dvc repro train_device_models ──► serve/ (models + we
 | Reproducibility | One pinned bundle; CI and the image never retrain | `dvc.lock`, `docs/decisions.md` D8 |
 | CI gate | The same gate command stops the build on a failure; the image is published only from `main` | `.github/workflows/ci.yml` |
 | Honest front end | Shows the data mode, model version, margin over copying today, and reveals what really happened | `web/index.html` |
-| Model risk register | 18 risks with before and after ratings and evidence | `docs/model_risk.md` |
+| Drift monitoring | PSI per input against a seasonal reference, four induced scenarios, monthly error against persistence, Evidently reports, a weekly CI run | `/v1/monitoring/drift`, `docs/decisions.md` D16 to D18 |
+| Versioned, per-task release | Retrained versions are compared with the champion on the same unseen days and promoted only if better, with a recorded reason and approver; a worse one is refused | `results/monitoring/champion_vs_challenger.json`, D19 |
+| Command center | One page for the whole pipeline: site map with tomorrow's outlook, briefing, drift, releases, gates, performance | `/ops.html` |
+| Governance | Roles, branch protection, promotion policy, audit trail, NIST AI RMF mapping | `docs/governance.md` |
+| Model risk register | 22 risks with before and after ratings and evidence | `docs/model_risk.md` |
 
 ## Reproduce the work
 
@@ -127,7 +131,26 @@ python -m pytest tests/devices tests/serving -q       # tests
 python -m ruff check . && python -m ruff format --check .
 ```
 
-Do not run a bare `dvc repro`: it would also rebuild the Phase 1 stages (see below).
+Do not run a bare `dvc repro`: it would also rebuild the Phase 1 stages (see below), and retrain
+`serve/`, which is now built from the registry.
+
+### Monitor, retrain and release (Phase 3)
+
+```bash
+dvc repro --single-item monitor                       # drift, performance drift, Evidently reports
+python -m solarwind.monitoring.drift check --scenario heatwave        # induce drift
+# edit params.yaml (train_end, val_end), then train a candidate into its own folders:
+python -m solarwind.devices.train --export serve_v2 --results results/device_models_v2
+python -m solarwind.devices.gates check --serve serve_v2 --champion serve
+python -m solarwind.monitoring.compare --champion serve --challenger serve_v2   # same days
+python -m solarwind.devices.registry register --serve serve_v2 --reason "<why>"
+python -m solarwind.devices.registry promote --task sunlight --reason "<why>" --approved-by "<role>"
+python -m solarwind.devices.registry materialize --out serve_release --base serve
+python -m solarwind.devices.registry export --out results/registry/history.json
+```
+
+A promotion is blocked unless the candidate passed the gates **and** is better on the same days; the
+release (D19) promoted sunlight and hub wind v2 and refused the calm-day v2.
 
 ## API
 
@@ -141,9 +164,9 @@ Base URL is the same origin as the page. Errors are JSON with `detail` and `requ
 | `POST /v1/forecast` | `{site, as_of, perturb{wind_shift_ms, sun_scale}, compare}` gives the next day's outlook, device results, the data mode (`snapshot`, `what-if`, `persistence`) and an optional LSTM shadow |
 | `GET /v1/replay?site&start&end` | forecast against actual for each day |
 | `GET /v1/monitoring/drift?scenario=` | PSI per input feature and per model output for `none`, `cloudy_monsoon`, `sensor_fault` or `heatwave`, with an overall OK / WARN / ALERT (shape in `web/sample/drift.json`) |
-| `GET /v1/ops/status` | one snapshot for the ops page: service counters, served models, data, gates, registry, last drift check, monthly performance (shape in `web/sample/ops_status.json`) |
+| `GET /v1/ops/status` | one snapshot for the ops page: service counters, served models, data, gates, registry, last drift check, monthly performance, the release review and the quarterly calm-day score (shape in `web/sample/ops_status.json`) |
 | `GET /metrics` | Prometheus metrics (not in the OpenAPI schema) |
-| `GET /ops.html` | operations page built on the two calls above: traffic, gates, drift scenarios, models and registry history, monthly error |
+| `GET /ops.html` | command center built on the calls above: site map with tomorrow's outlook, briefing, needs attention, gates, service, pipeline strip, drift scenarios, registry history, release review, performance |
 | `GET /reports/drift_<scenario>.html` | Evidently drift report, when the image was built with `web/reports` pulled |
 
 Status codes: 404 unknown site, 409 date outside 2019-10-30 to 2026-09-30, 422 unknown drift
@@ -177,14 +200,19 @@ Required GitHub secrets: `DAGSHUB_USER`, `DAGSHUB_TOKEN` (to pull the pinned bun
   and every call updates the drift gauges. Evidently is only used offline for the HTML reports; it
   is not in the image.
 - **Ops status.** `/v1/ops/status` reads `results/gates/report.json`,
-  `results/registry/history.json`, `results/monitoring/performance.csv` and
-  `results/monitoring/drift_latest.json`. Any missing or malformed file gives an empty section,
+  `results/registry/history.json`, `results/monitoring/performance.csv`,
+  `results/monitoring/drift_latest.json`, `results/monitoring/champion_vs_challenger.json` and
+  `results/monitoring/performance_lowwind.csv`. Any missing or malformed file gives an empty section,
   never an error. A drift check made in the running process replaces the file's drift result.
   Model versions come from `manifest.champions`, which `registry materialize` writes; a bundle
   trained directly reports `unknown`.
-- **Ops page.** `/ops.html` shows the status above and runs a drift scenario on click (each
-  button calls `/v1/monitoring/drift`, which also updates the drift gauges). It refreshes every
+- **Command center.** `/ops.html` shows the status above. On load it also reads `/v1/sites`
+  and asks for one day-ahead outlook per site from the last snapshot day (8 forecasts, which appear
+  in the counters and the prediction log), runs the "as observed" drift check, and writes the
+  briefing and "needs attention" list from those results, never from fixed text. Each scenario
+  button calls `/v1/monitoring/drift`, which also updates the drift gauges. It refreshes every
   30 seconds while the tab is visible, and an empty section says so instead of breaking the page.
+  The first drift check on a cold start takes a few seconds; open the page a minute before a demo.
 
 Counters, the latency window and the prediction log live in the container, so they reset when
 Render restarts the service.

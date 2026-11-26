@@ -43,9 +43,14 @@ The `validate_nasa` stage compared all 28 site pairs: no two sites share a grid 
 
 | Split | Dates | Use |
 |---|---|---|
-| Train | up to 2023-12-31 | fit models, cut-offs, scalers |
-| Validation | 2024 (one full year) | choose between models, thresholds |
-| Test | 2025-01-01 to 2026-09-30 | report only |
+| Split | v1 window (calm-day alert, still served) | v2 window (sunlight, hub wind) | Use |
+|---|---|---|---|
+| Train | up to 2023-12-31 | up to 2024-12-31 | fit models, cut-offs, scalers |
+| Validation | 2024 | 2025 | choose between models, thresholds |
+| Test | 2025-01-01 to 2026-09-30 | 2026-01-01 to 2026-09-30 | report only |
+
+The latest training window is versioned in `params.yaml`; each served model carries its own window in
+the bundle. Versions are compared on the same days, Jan to Sep 2026, not on their own test years (D19).
 
 Leakage controls: scalers sit inside the model pipeline and are fitted on training rows; the LSTM's scaling uses training days only; gate G7 recomputes the cut-offs from training days and checks that changing data after the as-of day changes no forecast.
 
@@ -59,7 +64,7 @@ Lamp (Sun King Home 60), solar water heater (Giacomini GSUN 200) and small wind 
 - **Eight representative sites.** Equal weights; real capacity shares are not known.
 - **One validation year.** The 2024 weather is one season cycle; a different year could rank models differently.
 - **Latency.** NASA POWER publishes with a delay of days (meteorology about 2 to 3 days, solar about 5 to 7). The demo replays a baked snapshot; a live service would use recent averages.
-- **Climate drift.** Models are trained on 2019 to 2023; later years can drift, which the drift-monitoring step is meant to watch.
+- **Climate drift.** It happened: July to September 2026 is the warmest season in the record (temperature PSI 0.89 against the training seasons). Drift is monitored (D16, D17) and led to the v2 release (D19).
 - Early repo history had two swapped file names (`nasa_solar_pavagada.csv` held the Chitradurga point); they were replaced by correctly named files with identical data (`docs/nasa_data_notes.md`).
 
 ## 7. Versioning

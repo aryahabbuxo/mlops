@@ -55,13 +55,11 @@ Open `https://<service>.onrender.com/ops.html` for the operations page. The firs
 scenario computes it (well under a second locally; slower on the free tier's CPU share), later
 calls are cached.
 
-## Keep it awake (required on free tier)
-
-Render free services sleep after ~15 min idle; the next request pays the ~68 s cold start and may
-time out. Add an external pinger hitting `/health` every 5 minutes:
-
 ## Notes
 
+- Render free services sleep after ~15 min idle, and the next request pays the ~68 s cold start.
+  There is no keep-alive pinger by choice; before a demo, open `/ops.html` a minute early so the
+  service is warm and the first drift check has run.
 - No runtime secrets: the model bundle is baked into the image.
 - The prediction log (`/app/logs/predictions.jsonl`), the request counters and the drift cache live
   in the container. Render's disk is ephemeral, so they reset on every restart or redeploy; fine

@@ -6,7 +6,18 @@ import pytest
 
 from solarwind.serving import ops
 
-SECTIONS = {"service", "models", "data", "gates", "registry", "drift", "performance", "links"}
+SECTIONS = {
+    "service",
+    "models",
+    "data",
+    "gates",
+    "registry",
+    "drift",
+    "performance",
+    "comparison",
+    "calm_day",
+    "links",
+}
 SERVICE_FIELDS = {
     "git_commit",
     "api_version",
@@ -49,6 +60,27 @@ def write_results(root):
         writer.writerow(["2024-01", "hubwind", "0.7293", "0.741", "124", "0.9843", "False"])
     drift = {"generated_at": "2026-11-24T20:00:59Z", "scenario": "none", "status": "ALERT"}
     paths["drift"].write_text(json.dumps(drift), encoding="utf-8")
+    paths["comparison"].write_text(json.dumps(COMPARISON), encoding="utf-8")
+    with paths["calm_day"].open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["quarter", "model_pr_auc", "baseline_pr_auc", "days", "calm_days", "flag"])
+        writer.writerow(["2025Q3", "0.369", "0.0961", "368", "11", "False"])
+
+
+COMPARISON = {
+    "generated_at": "2026-11-25T12:00:00Z",
+    "window": {"start": "2026-01-01", "end": "2026-09-30"},
+    "champion": {"models": {"sunlight": "hgb-01f5da66", "lowwind": "logistic-df49f764"}},
+    "challenger": {"models": {"sunlight": "ridge-d122d55b", "lowwind": "hgb_clf-39376d36"}},
+    "tasks": {
+        "lowwind": {"metric": "pr_auc", "champion": 0.6196, "challenger": 0.5103,
+                    "persistence": 0.4466, "change_pct": -17.64, "verdict": "worse",
+                    "eligible": False},
+        "sunlight": {"metric": "mae", "champion": 0.6004, "challenger": 0.5791,
+                     "persistence": 0.6397, "change_pct": -3.56, "verdict": "better",
+                     "eligible": True},
+    },
+}  # fmt: skip
 
 
 @pytest.fixture
@@ -88,6 +120,14 @@ def test_full_status_has_every_section(client, results):
         "model_mae": 0.4593,
         "persistence_mae": 0.5058,
     }
+    assert body["comparison"]["start"] == "2026-01-01"
+    assert [t["task"] for t in body["comparison"]["tasks"]] == ["sunlight", "lowwind"]
+    sunlight, lowwind = body["comparison"]["tasks"]
+    assert sunlight["eligible"] and sunlight["challenger_id"] == "ridge-d122d55b"
+    assert lowwind["verdict"] == "worse" and not lowwind["eligible"]
+    assert body["calm_day"] == [
+        {"quarter": "2025Q3", "model_pr_auc": 0.369, "baseline_pr_auc": 0.0961, "calm_days": 11}
+    ]
     assert body["links"]["actions"].endswith("/actions")
 
 
@@ -100,6 +140,8 @@ def test_missing_files_give_empty_sections(client, no_results):
     assert body["registry"] == []
     assert body["drift"] == {}
     assert body["performance"] == []
+    assert body["comparison"] == {}
+    assert body["calm_day"] == []
     assert body["service"]["git_commit"]
 
 
@@ -113,6 +155,7 @@ def test_broken_files_give_empty_sections(client, tmp_path, monkeypatch):
     body = client.get("/v1/ops/status").json()
 
     assert (body["gates"], body["registry"], body["drift"], body["performance"]) == ({}, [], {}, [])
+    assert (body["comparison"], body["calm_day"]) == ({}, [])
 
 
 def test_a_drift_check_in_this_process_wins_over_the_file(client, results):
@@ -176,3 +219,16 @@ def test_uptime_is_whole_seconds_since_start():
     )
     assert service["started_at"] == "2026-11-22T09:00:00Z"
     assert service["uptime_s"] == 3600
+
+
+def test_comparison_summary_skips_malformed_tasks():
+    assert ops.comparison_summary({"tasks": {"sunlight": {"metric": "mae"}}}) == {}
+    assert ops.comparison_summary({"tasks": []}) == {}
+    assert ops.comparison_summary(None) == {}
+
+
+def test_repository_release_review_lists_every_task():
+    """The committed comparison file is the v1 vs v2 release review the ops page shows."""
+    result = ops.read_json(ops.result_paths(ops.Path("results"))["comparison"])
+    summary = ops.comparison_summary(result)
+    assert [t["task"] for t in summary["tasks"]] == ["sunlight", "hubwind", "lowwind"]

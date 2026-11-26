@@ -16,6 +16,7 @@ CHAMPION = "champion"
 UNKNOWN_VERSION = "unknown"
 PERFORMANCE_FIELDS = ("month", "task", "model_mae", "persistence_mae")
 REGISTRY_FIELDS = ("task", "version", "aliases", "gates", "reason", "approved_by", "date")
+COMPARISON_TASKS = ("sunlight", "hubwind", "lowwind")
 
 
 def results_dir() -> Path:
@@ -28,6 +29,8 @@ def result_paths(root: Path) -> dict[str, Path]:
         "registry": root / "registry" / "history.json",
         "performance": root / "monitoring" / "performance.csv",
         "drift": root / "monitoring" / "drift_latest.json",
+        "comparison": root / "monitoring" / "champion_vs_challenger.json",
+        "calm_day": root / "monitoring" / "performance_lowwind.csv",
     }
 
 
@@ -105,6 +108,61 @@ def performance_rows(rows: list[dict[str, str]]) -> list[dict]:
     return out
 
 
+def comparison_summary(result: Any) -> dict:
+    """The release review: champion vs challenger scored on the same recent days, per task."""
+    if not isinstance(result, dict) or not isinstance(result.get("tasks"), dict):
+        return {}
+    window = result.get("window") if isinstance(result.get("window"), dict) else {}
+    ids = {
+        side: (result.get(side) or {}).get("models") or {} for side in ("champion", "challenger")
+    }
+    tasks = []
+    for task in COMPARISON_TASKS:
+        t = result["tasks"].get(task)
+        if not isinstance(t, dict) or "verdict" not in t:
+            continue
+        tasks.append(
+            {
+                "task": task,
+                "metric": t.get("metric"),
+                "champion": t.get("champion"),
+                "challenger": t.get("challenger"),
+                "persistence": t.get("persistence"),
+                "change_pct": t.get("change_pct"),
+                "verdict": t["verdict"],
+                "eligible": bool(t.get("eligible")),
+                "champion_id": ids["champion"].get(task),
+                "challenger_id": ids["challenger"].get(task),
+            }
+        )
+    if not tasks:
+        return {}
+    return {
+        "start": window.get("start"),
+        "end": window.get("end"),
+        "generated_at": result.get("generated_at"),
+        "tasks": tasks,
+    }
+
+
+def calm_day_rows(rows: list[dict[str, str]]) -> list[dict]:
+    """Quarterly PR-AUC of the calm-day alert and of yesterday's flag (higher is better)."""
+    out = []
+    for row in rows:
+        if not row.get("quarter"):
+            continue
+        calm = _float(row.get("calm_days"))
+        out.append(
+            {
+                "quarter": row["quarter"],
+                "model_pr_auc": _float(row.get("model_pr_auc")),
+                "baseline_pr_auc": _float(row.get("baseline_pr_auc")),
+                "calm_days": int(calm) if calm is not None else None,
+            }
+        )
+    return out
+
+
 def drift_summary(result: Any) -> dict:
     if not isinstance(result, dict) or "status" not in result:
         return {}
@@ -169,4 +227,6 @@ def file_sections(paths: dict[str, Path], live_drift: dict | None) -> dict:
         "registry": registry_entries(read_json(paths["registry"])),
         "drift": drift_summary(live_drift or read_json(paths["drift"])),
         "performance": performance_rows(read_csv(paths["performance"])),
+        "comparison": comparison_summary(read_json(paths["comparison"])),
+        "calm_day": calm_day_rows(read_csv(paths["calm_day"])),
     }
