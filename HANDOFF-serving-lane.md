@@ -16,7 +16,7 @@ change it, and the few optional follow-ups. TL;DR first.
 - **Deploy loop going forward:** merge to `main` → CI publishes the image to GHCR → Render
   "Deploy latest reference". No local Docker push needed.
 - **Optional, not blocking the demo:** Cloud Run upgrade (runbook ready, waiting on GCP billing),
-  a small `/v1/stats` endpoint, and confirming the uptime pinger. K5 (LSTM shadow) is parked.
+  and a small `/v1/stats` endpoint. K5 (LSTM shadow) is parked.
 
 ---
 
@@ -76,8 +76,8 @@ curl -fsS -X POST $BASE/v1/forecast -H 'Content-Type: application/json' \
 - CI always `dvc pull serve`; never regenerates the bundle.
 
 **Deploy**
-- **Render (live):** `deploy/render.md` — image URL, `PORT=8000`, health path `/health`, uptime
-  pinger, measured viability numbers.
+- **Render (live):** `deploy/render.md` — image URL, `PORT=8000`, health path `/health`,
+  measured viability numbers.
 - **Cloud Run (future upgrade):** `deploy/cloud-run.md` — one-command deploy once GCP billing is on.
 
 **Measured viability** (0.1 CPU / 512 MB): ready in ~68 s cold, peak ~152 MiB, warm forecast
@@ -87,14 +87,12 @@ curl -fsS -X POST $BASE/v1/forecast -H 'Content-Type: application/json' \
 
 ## Optional follow-ups (none block the demo)
 
-1. **Uptime pinger** — confirm UptimeRobot/cron-job.org hits `/health` every 5 min. Render free
-   sleeps after ~15 min idle; without it the first visitor eats the ~68 s cold start.
-2. **Cloud Run upgrade** — when the teammate's GCP billing is ready, follow `deploy/cloud-run.md`
+1. **Cloud Run upgrade** — when the teammate's GCP billing is ready, follow `deploy/cloud-run.md`
    (push the same GHCR image to Artifact Registry `asia-south1`, `gcloud run deploy`). Cloud Run
-   holds requests during cold start (no pinger needed) and scales to zero.
-3. **`/v1/stats`** — small request-count + latency endpoint; not built yet (platform lane, ~20 min if
+   holds requests during cold start and scales to zero.
+2. **`/v1/stats`** — small request-count + latency endpoint; not built yet (platform lane, ~20 min if
    wanted).
-4. **K5 (LSTM shadow)** — parked: TensorFlow doesn't fit this image / 512 MB. Would need a separate
+3. **K5 (LSTM shadow)** — parked: TensorFlow doesn't fit this image / 512 MB. Would need a separate
    service or a bigger host.
 
 ---
